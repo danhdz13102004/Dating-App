@@ -1,35 +1,197 @@
-import React from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import Icon from "react-native-vector-icons/Feather";
+import { Colors } from "../../constants/Colors";
+import { Image } from "react-native";
 
-const Login = () => {
-    return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Login</Text>
+const LoginScreen = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
+
+  const togglePasswordVisibility = () => {
+    setPasswordVisible(!passwordVisible);
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+      >
+        <View style={styles.header}>
+          <View style={styles.logoWrapper}>
+            <Text style={styles.logoText}>CUPID ARROW</Text>
+            <Image
+              source={require("../../assets/images/cupid_icon.png")} // Đường dẫn ảnh
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+
+
+          </View>
+          <Text style={styles.tagline}>Meet the right person</Text>
+
         </View>
-    );
+
+        <View style={styles.formContainer}>
+          <Text style={styles.welcomeText}>Welcome Back</Text>
+          <Text style={styles.subtitleText}>Sign in to continue</Text>
+
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!passwordVisible}
+            />
+            <TouchableOpacity
+              style={styles.eyeIcon}
+              onPress={togglePasswordVisibility}
+            >
+              <Icon
+                name={passwordVisible ? "eye" : "eye-off"}
+                size={20}
+                color="#999"
+              />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity style={styles.signInButton}>
+            <Text style={styles.signInText}>SIGN IN</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.signUpButton}>
+            <Text style={styles.signUpText}>SIGNUP</Text>
+          </TouchableOpacity>
+        </View>
+
+
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        padding: 20,
-        backgroundColor: '#fff',
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        textAlign: 'center',
-    },
-    input: {
-        height: 40,
-        borderColor: '#ccc',
-        borderWidth: 1,
-        marginBottom: 15,
-        paddingHorizontal: 10,
-        borderRadius: 5,
-    },
+  container: {
+    flex: 1,
+    backgroundColor: Colors.primaryColor,
+  },
+  header: {
+    height: "30%", // Further reduced header height to move form up more
+    justifyContent: "flex-end",
+    alignItems: "center", // Center alignment for the logo
+    paddingBottom: 20,
+  },
+  logoWrapper: {
+    flexDirection: 'row',
+    alignItems: "center",
+    gap: 10 // Center the text within wrapper
+  },
+  logoText: {
+    fontSize: 36,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+    letterSpacing: 1,
+  },
+  tagline: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    opacity: 0.8,
+  },
+  formContainer: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingTop: 30,
+    paddingBottom: 20,
+    flex: 1, // Let form container take remaining space
+  },
+  welcomeText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  subtitleText: {
+    fontSize: 14,
+    color: "#888",
+    marginBottom: 30,
+  },
+  inputContainer: {
+    marginBottom: 15,
+    position: "relative",
+  },
+  input: {
+
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEE",
+    paddingVertical: 16,
+    fontSize: 16,
+  },
+  eyeIcon: {
+    position: "absolute",
+    right: 0,
+    top: 12,
+  },
+  signInButton: {
+    backgroundColor: Colors.primaryColor,
+    paddingVertical: 14,
+    borderRadius: 30,
+    alignItems: "center",
+    marginTop: 80,
+    marginBottom: 15,
+    borderRadius: 15,
+
+  },
+  signInText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  signUpButton: {
+    borderWidth: 1,
+    borderColor: Colors.primaryColor,
+    paddingVertical: 14,
+    borderRadius: 30,
+    alignItems: "center",
+    borderRadius: 15,
+    marginTop: 70,
+
+  },
+  signUpText: {
+    color: Colors.primaryColor,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  logoImage: {
+    width: 60,
+    height: 60,
+    // marginBottom: 10,
+  },
+
+
 });
 
-export default Login;
+export default LoginScreen;
