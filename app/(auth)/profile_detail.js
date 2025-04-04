@@ -5,20 +5,38 @@ import {
   TextInput, 
   TouchableOpacity, 
   StyleSheet, 
-  Image, 
   SafeAreaView,
   Platform 
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Feather'; // Using Feather icons
+import { Image } from 'expo-image';
+import Icon from 'react-native-vector-icons/Feather'; 
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import * as ImagePicker from 'expo-image-picker';
 
 const ProfileDetails = () => {
   const [firstName, setFirstName] = useState('David');
   const [lastName, setLastName] = useState('Peterson');
   const [date, setDate] = useState(null);
   const [open, setOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const placeholder = require("@/assets/images/placeholder_avatar.png");
 
-  // Format date for display
+  
+
+  const pickImageAsync = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0].uri);
+    } else {
+      alert('You did not select any image.');
+    }
+  };
+
   const formatDate = (date) => {
     if (!date) return '';
     return date.toLocaleDateString('en-US', {
@@ -36,19 +54,17 @@ const ProfileDetails = () => {
     setOpen(false);
   };
 
-  const handleConfirm = (date) => {
+  const handleSelect = (date) => {
     setDate(date)
     hideDatePicker();
   };
 
+  const handleConfirm = ()=>{
+    // do something when click confirm button
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity>
-          <Text style={styles.skipButton}>Skip</Text>
-        </TouchableOpacity>
-      </View>
       
       <View style={styles.titleContainer}>
         <Text style={styles.title}>Profile details</Text>
@@ -56,13 +72,16 @@ const ProfileDetails = () => {
       
       <View style={styles.profileImageContainer}>
         <View style={styles.imageWrapper}>
-          <Image 
-            source={{ uri: 'https://via.placeholder.com/200' }} 
-            style={styles.profileImage} 
-          />
+        <Image
+          style={styles.profileImage}
+          source={selectedImage}
+          placeholder={placeholder}
+          contentFit="cover"
+          transition={1000}
+        />
         </View>
         <TouchableOpacity style={styles.cameraButton}>
-          <Icon name="camera" size={18} color="white" />
+          <Icon name="camera" size={18} color="white" onPress={pickImageAsync}/>
         </TouchableOpacity>
       </View>
       
@@ -107,12 +126,12 @@ const ProfileDetails = () => {
         <DateTimePickerModal
           isVisible={open}
           mode="date"
-          onConfirm={handleConfirm}
+          onConfirm={handleSelect}
           onCancel={hideDatePicker}
         />
     
         <TouchableOpacity style={styles.confirmButton}>
-          <Text style={styles.confirmText}>Confirm</Text>
+          <Text style={styles.confirmText} onPress={handleConfirm}>Confirm</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -126,21 +145,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 20
   },
-  header: {
-    alignItems: 'flex-end',
-    marginBottom: 60
-  },
-  skipButton: {
-    color: '#E57373',
-    fontWeight: '500',
-    fontSize: 16
-  },
   titleContainer: {
+    marginTop: 60,
     marginBottom: 60
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+    textAlign: 'center'
   },
   profileImageContainer: {
     alignItems: 'center',
