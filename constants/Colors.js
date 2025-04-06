@@ -6,22 +6,23 @@
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
 
-export const Colors = {
-  light: {
+export const Colors = Object.freeze({
+  light: Object.freeze({
     text: '#11181C',
-    background: '#fff',
+    lightText: '#888888',
+    background: '#FFFFFF',
     tint: tintColorLight,
     icon: '#687076',
     tabIconDefault: '#687076',
     tabIconSelected: tintColorLight,
-  },
-  dark: {
+  }),
+  dark: Object.freeze({
     text: '#ECEDEE',
     background: '#151718',
     tint: tintColorDark,
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
-  },
-  primaryColor: '#e94057',
-};
+  }),
+  primaryColor: '#E94057',
+})
