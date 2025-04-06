@@ -1,8 +1,20 @@
 import React, { useState, useRef } from "react";
-import { View, Text, Image, StyleSheet, Dimensions, TouchableOpacity, SafeAreaView, Platform } from "react-native";
+import { 
+  View, 
+  Text, 
+  Image, 
+  StyleSheet, 
+  Dimensions, 
+  TouchableOpacity, 
+  SafeAreaView, 
+  Platform,
+  Modal,
+  TouchableWithoutFeedback
+} from "react-native";
 import Swiper from "react-native-deck-swiper";
 import { FontAwesome } from "@expo/vector-icons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import Slider from '@react-native-community/slider';
 const { width, height } = Dimensions.get("window");
 import { Colors } from "../../../constants/Colors";
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
@@ -45,14 +57,45 @@ const users = [
 const MatchScreen = () => {
     const swiperRef = useRef(null);
     const [hoverSide, setHoverSide] = useState(null); // null, 'left', or 'right'
+    const [showFilters, setShowFilters] = useState(false);
+    const [genderFilter, setGenderFilter] = useState('Girls');
     
+    // Distance filter settings
+    const [distanceFilter, setDistanceFilter] = useState(40);
+    const MAX_DISTANCE = 100; // Maximum distance in km
+    
+    // Age filter settings
+    const [ageRange, setAgeRange] = useState([20, 28]);
+    const MIN_AGE = 18;
+    const MAX_AGE = 50;
     
     // Function to clear hover state
     const clearHoverState = () => {
         console.log("clearHoverState");
         setHoverSide(null);
     };
+
+    // Function to toggle filter modal
+    const toggleFiltersModal = () => {
+        setShowFilters(!showFilters);
+    };
     
+    // Function to reset filters
+    const clearFilters = () => {
+        setGenderFilter('Girls');
+        setDistanceFilter(40);
+        setAgeRange([20, 28]);
+    };
+    
+    // Handle age range change
+    const handleAgeRangeChange = (type, value) => {
+        if (type === 'min') {
+            setAgeRange([Math.min(value, ageRange[1]), ageRange[1]]);
+        } else {
+            setAgeRange([ageRange[0], Math.max(value, ageRange[0])]);
+        }
+    };
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
@@ -61,7 +104,7 @@ const MatchScreen = () => {
                         <TouchableOpacity style={styles.backButton}>
                             <MaterialIcons style={{ marginLeft: 5 }} name="arrow-back-ios" size={20} color={Colors.primaryColor} />
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.backButton}>
+                        <TouchableOpacity style={styles.backButton} onPress={toggleFiltersModal}>
                          <FontAwesome5 name="sliders-h" size={24} color={Colors.primaryColor} />
                         </TouchableOpacity>
                     </View>
@@ -84,11 +127,8 @@ const MatchScreen = () => {
                             <View 
                                 style={styles.card}
                                 onTouchEnd={clearHoverState}
-                                // onTouchCancel={clearHoverState}
                             >
                                 <Image source={{ uri: user.image }} style={styles.image} />
-                                
-
                                 
                                 <View style={styles.overlay}>
                                     <Text style={styles.distance}>{user.distance}</Text>
@@ -104,19 +144,19 @@ const MatchScreen = () => {
                         containerStyle={styles.swiperContainerStyle}
                     />
 
-                                                    {/* Left hover indicator (skip) */}
-                                                    {hoverSide === 'left' && (
-                                    <View style={styles.leftHoverIndicator}>
-                                        <FontAwesome name="times" size={40} color="orange" />
-                                    </View>
-                                )}
-                                
-                                {/* Right hover indicator (heart) */}
-                                {hoverSide === 'right' && (
-                                    <View style={styles.rightHoverIndicator}>
-                                        <FontAwesome name="heart" size={40} color={Colors.primaryColor} />
-                                    </View>
-                                )}  
+                    {/* Left hover indicator (skip) */}
+                    {hoverSide === 'left' && (
+                        <View style={styles.leftHoverIndicator}>
+                            <FontAwesome name="times" size={40} color="orange" />
+                        </View>
+                    )}
+                    
+                    {/* Right hover indicator (heart) */}
+                    {hoverSide === 'right' && (
+                        <View style={styles.rightHoverIndicator}>
+                            <FontAwesome name="heart" size={40} color={Colors.primaryColor} />
+                        </View>
+                    )}  
                 </View>
 
                 <View style={styles.buttonsContainer}>
@@ -133,6 +173,152 @@ const MatchScreen = () => {
                     </TouchableOpacity>
                 </View>
 
+                {/* Filters Modal */}
+                <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={showFilters}
+                    onRequestClose={toggleFiltersModal}
+                >
+                    <TouchableWithoutFeedback onPress={toggleFiltersModal}>
+                        <View style={styles.modalOverlay}>
+                            <TouchableWithoutFeedback>
+                                <View style={styles.filterModalContainer}>
+                                    <View style={styles.filterModalHandle} />
+                                    
+                                    <View style={styles.filterModalHeader}>
+                                        <Text style={styles.filterModalTitle}>Filters</Text>
+                                        <TouchableOpacity onPress={clearFilters}>
+                                            <Text style={styles.clearText}>Clear</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    
+                                    {/* Gender Filter */}
+                                    <View style={styles.filterSection}>
+                                        <Text style={styles.filterSectionTitle}>Interested in</Text>
+                                        <View style={styles.genderButtonsContainer}>
+                                            <TouchableOpacity 
+                                                style={[
+                                                    styles.genderButton, 
+                                                    genderFilter === 'Girls' && styles.genderButtonActive
+                                                ]}
+                                                onPress={() => setGenderFilter('Girls')}
+                                            >
+                                                <Text style={[
+                                                    styles.genderButtonText,
+                                                    genderFilter === 'Girls' && styles.genderButtonTextActive
+                                                ]}>Girls</Text>
+                                            </TouchableOpacity>
+                                            
+                                            <TouchableOpacity 
+                                                style={[
+                                                    styles.genderButton, 
+                                                    genderFilter === 'Boys' && styles.genderButtonActive
+                                                ]}
+                                                onPress={() => setGenderFilter('Boys')}
+                                            >
+                                                <Text style={[
+                                                    styles.genderButtonText,
+                                                    genderFilter === 'Boys' && styles.genderButtonTextActive
+                                                ]}>Boys</Text>
+                                            </TouchableOpacity>
+                                            
+                                            <TouchableOpacity 
+                                                style={[
+                                                    styles.genderButton, 
+                                                    genderFilter === 'Any' && styles.genderButtonActive
+                                                ]}
+                                                onPress={() => setGenderFilter('Any')}
+                                            >
+                                                <Text style={[
+                                                    styles.genderButtonText,
+                                                    genderFilter === 'Any' && styles.genderButtonTextActive
+                                                ]}>Any</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                    
+                                    {/* Distance Filter */}
+                                    <View style={styles.filterSection}>
+                                        <View style={styles.filterSectionHeader}>
+                                            <Text style={styles.filterSectionTitle}>Distance</Text>
+                                            <Text style={styles.filterValue}>{distanceFilter}km</Text>
+                                        </View>
+                                        <View style={styles.sliderContainer}>
+                                            <View style={styles.sliderTrack}>
+                                                <View style={[styles.sliderFill, {width: `${(distanceFilter/MAX_DISTANCE) * 100}%`}]} />
+                                            </View>
+                                            <Slider
+                                                style={styles.slider}
+                                                minimumValue={1}
+                                                maximumValue={MAX_DISTANCE}
+                                                step={1}
+                                                value={distanceFilter}
+                                                onValueChange={setDistanceFilter}
+                                                minimumTrackTintColor="#FF4466"
+                                                maximumTrackTintColor="#E5E5E5"
+                                                thumbTintColor="#FF4466"
+                                                thumbStyle={styles.sliderThumb}
+                                            />
+                                        </View>
+                                    </View>
+                                    
+                                    {/* Age Filter */}
+                                    <View style={styles.filterSection}>
+                                        <View style={styles.filterSectionHeader}>
+                                            <Text style={styles.filterSectionTitle}>Age</Text>
+                                            <Text style={styles.filterValue}>{ageRange[0]}-{ageRange[1]}</Text>
+                                        </View>
+                                        <Text style={styles.sliderLabel}>Min: {ageRange[0]}</Text>
+                                        <View style={styles.sliderContainer}>
+                                            <View style={styles.sliderTrack}>
+                                                <View style={[styles.sliderFill, {width: `${((ageRange[0] - MIN_AGE) / (MAX_AGE - MIN_AGE)) * 100}%`}]} />
+                                            </View>
+                                            <Slider
+                                                style={styles.slider}
+                                                minimumValue={MIN_AGE}
+                                                maximumValue={MAX_AGE}
+                                                step={1}
+                                                value={ageRange[0]}
+                                                onValueChange={(value) => handleAgeRangeChange('min', value)}
+                                                minimumTrackTintColor="#FF4466"
+                                                maximumTrackTintColor="#E5E5E5"
+                                                thumbTintColor="#FF4466"
+                                                thumbStyle={styles.sliderThumb}
+                                            />
+                                        </View>
+                                        <Text style={styles.sliderLabel}>Max: {ageRange[1]}</Text>
+                                        <View style={styles.sliderContainer}>
+                                            <View style={styles.sliderTrack}>
+                                                <View style={[styles.sliderFill, {width: `${((ageRange[1] - MIN_AGE) / (MAX_AGE - MIN_AGE)) * 100}%`}]} />
+                                            </View>
+                                            <Slider
+                                                style={styles.slider}
+                                                minimumValue={MIN_AGE}
+                                                maximumValue={MAX_AGE}
+                                                step={1}
+                                                value={ageRange[1]}
+                                                onValueChange={(value) => handleAgeRangeChange('max', value)}
+                                                minimumTrackTintColor="#FF4466"
+                                                maximumTrackTintColor="#E5E5E5"
+                                                thumbTintColor="#FF4466"
+                                                thumbStyle={styles.sliderThumb}
+                                            />
+                                        </View>
+                                    </View>
+                                    
+                                    {/* Continue Button */}
+                                    <TouchableOpacity 
+                                        style={styles.continueButton}
+                                        onPress={toggleFiltersModal}
+                                    >
+                                        <Text style={styles.continueButtonText}>Continue</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </TouchableWithoutFeedback>
+                        </View>
+                    </TouchableWithoutFeedback>
+                </Modal>
             </View>
         </SafeAreaView>
     );
@@ -237,7 +423,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#f0f2f2",
         elevation: 2,
     },
-    // New styles for hover indicators
+    // Hover indicators
     leftHoverIndicator: {
         position: "absolute",
         top: "50%",
@@ -260,6 +446,138 @@ const styles = StyleSheet.create({
         borderRadius: 50,
         padding: 15,
         zIndex: 2
+    },
+    
+    // Filter Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
+    },
+    filterModalContainer: {
+        backgroundColor: 'white',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 20,
+        paddingBottom: 30,
+    },
+    filterModalHandle: {
+        width: 40,
+        height: 5,
+        backgroundColor: '#e0e0e0',
+        alignSelf: 'center',
+        borderRadius: 3,
+        marginBottom: 20,
+    },
+    filterModalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 30,
+    },
+    filterModalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+    },
+    clearText: {
+        color: Colors.primaryColor,
+        fontSize: 16,
+    },
+    filterSection: {
+        marginBottom: 30,
+    },
+    filterSectionTitle: {
+        fontSize: 16,
+        fontWeight: '500',
+        marginBottom: 15,
+    },
+    filterSectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    filterValue: {
+        color: '#888',
+        fontSize: 16,
+    },
+    genderButtonsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    genderButton: {
+        flex: 1,
+        paddingVertical: 12,
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+        alignItems: 'center',
+        marginHorizontal: 5,
+        borderRadius: 5,
+    },
+    genderButtonActive: {
+        backgroundColor: Colors.primaryColor,
+        borderColor: Colors.primaryColor,
+    },
+    genderButtonText: {
+        color: '#555',
+        fontWeight: '500',
+    },
+    genderButtonTextActive: {
+        color: 'white',
+    },
+    // New slider styles
+    sliderContainer: {
+        width: '100%',
+        height: 40,
+        justifyContent: 'center',
+        position: 'relative',
+    },
+    sliderTrack: {
+        position: 'absolute',
+        height: 5,
+        width: '100%',
+        backgroundColor: '#E5E5E5',
+        borderRadius: 2,
+    },
+    sliderFill: {
+        height: '100%',
+        backgroundColor: '#FF4466',
+        borderRadius: 2,
+    },
+    slider: {
+        width: '100%',
+        height: 40,
+        opacity: 0.9,
+    },
+    sliderThumb: {
+        width: 30,
+        height: 30,
+        borderRadius: 10,
+        backgroundColor: '#FF4466',
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    sliderLabel: {
+        color: '#555',
+        marginBottom: 5,
+    },
+    continueButton: {
+        backgroundColor: Colors.primaryColor,
+        borderRadius: 10,
+        paddingVertical: 15,
+        alignItems: 'center',
+        marginTop: 20,
+    },
+    continueButtonText: {
+        color: 'white',
+        fontSize: 18,
+        fontWeight: '500',
     }
 });
 
