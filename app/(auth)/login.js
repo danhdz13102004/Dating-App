@@ -39,7 +39,7 @@ const LoginScreen = () => {
 
 
           </View>
-          <Text style={styles.tagline}>Meet the right person</Text>
+           <Text style={styles.tagline}>Meet the right person</Text>
 
         </View>
 
