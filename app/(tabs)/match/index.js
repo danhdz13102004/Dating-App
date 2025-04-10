@@ -1,266 +1,177 @@
-import React, { useState, useRef } from "react";
-import { View, Text, Image, StyleSheet, Dimensions, TouchableOpacity, SafeAreaView, Platform } from "react-native";
-import Swiper from "react-native-deck-swiper";
-import { FontAwesome } from "@expo/vector-icons";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-const { width, height } = Dimensions.get("window");
-import { Colors } from "../../../constants/Colors";
-import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import React from 'react';
+import { View, Text, Image, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, StatusBar } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+const MatchCard = ({ name, age, imageUrl, onRemove, onLike }) => {
+  return (
+    <View style={styles.matchCard}>
+      <Image source={{ uri: imageUrl }} style={styles.matchImage} />
+      <View style={styles.matchInfo}>
+        <Text style={styles.matchText}>{name}, {age}</Text>
+      </View>
 
-const users = [
-    {
-        id: 1,
-        name: "Jessica Parker",
-        age: 23,
-        profession: "Professional model",
-        image: "https://cdnphoto.dantri.com.vn/Im0W2Oa59BulrmFjQo1dOsDcBZY=/thumb_w/990/2021/10/30/trang-nhungdocx-1635528230350.jpeg",
-        distance: "1 km",
-    },
-    {
-        id: 2,
-        name: "Sophia Williams",
-        age: 25,
-        profession: "Graphic Designer",
-        image: "https://picsum.photos/200",
-        distance: "2 km",
-    },
-    {
-        id: 3,
-        name: "Emma Johnson",
-        age: 27,
-        profession: "Marketing Specialist",
-        image: "https://picsum.photos/201",
-        distance: "3 km",
-    },
-    {
-        id: 4,
-        name: "Olivia Brown",
-        age: 24,
-        profession: "Software Engineer",
-        image: "https://picsum.photos/202",
-        distance: "4 km",
-    },
-];
+      <View style={styles.actionButtons}>
+        <TouchableOpacity style={styles.actionButton} onPress={onRemove}>
+        <FontAwesome name="close" size={30} color="white" />
+        </TouchableOpacity>
+        <View style={styles.buttonDivider} />
+        <TouchableOpacity style={styles.actionButton} onPress={onLike}>
+        <AntDesign name="heart" size={28} color="white" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
 
-const MatchScreen = () => {
-    const swiperRef = useRef(null);
-    const [hoverSide, setHoverSide] = useState(null); // null, 'left', or 'right'
-    
-    
-    // Function to clear hover state
-    const clearHoverState = () => {
-        console.log("clearHoverState");
-        setHoverSide(null);
-    };
-    
-    return (
-        <SafeAreaView style={styles.safeArea}>
-            <View style={styles.container}>
-                <View style={styles.headerContainer}>
-                    <View style={styles.header}>
-                        <TouchableOpacity style={styles.backButton}>
-                            <MaterialIcons style={{ marginLeft: 5 }} name="arrow-back-ios" size={20} color={Colors.primaryColor} />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.backButton}>
-                         <FontAwesome5 name="sliders-h" size={24} color={Colors.primaryColor} />
-                        </TouchableOpacity>
-                    </View>
-                </View>
+const MatchesScreen = () => {
+  // Combined all matches into a single array
+  const matches = [
+    { id: 1, name: 'Leilani', age: 19, image: 'https://picsum.photos/200' },
+    { id: 2, name: 'Annabelle', age: 20, image: 'https://picsum.photos/200' },
+    { id: 3, name: 'Reagan', age: 24, image: 'https://picsum.photos/200' },
+    { id: 4, name: 'Hadley', age: 25, image: 'https://picsum.photos/200' },
+    { id: 5, name: 'Emma', age: 22, image: 'https://picsum.photos/200' },
+    { id: 6, name: 'Michael', age: 27, image: 'https://picsum.photos/200' },
+  ];
 
-                <View style={styles.swiperContainer}>
-                    <Swiper
-                        ref={swiperRef}
-                        cards={users}
-                        onSwiping={(direction) => {
-                            if (direction < 0) {
-                                setHoverSide('left');
-                            } else if (direction > 0) {
-                                setHoverSide('right');
-                            } else {
-                                setHoverSide(null);
-                            }
-                        }}
-                        renderCard={(user) => (
-                            <View 
-                                style={styles.card}
-                                onTouchEnd={clearHoverState}
-                                // onTouchCancel={clearHoverState}
-                            >
-                                <Image source={{ uri: user.image }} style={styles.image} />
-                                
+  const handleRemoveMatch = (id) => {
+    console.log('Remove match with id:', id);
+  };
 
-                                
-                                <View style={styles.overlay}>
-                                    <Text style={styles.distance}>{user.distance}</Text>
-                                    <Text style={styles.name}>{user.name}, {user.age}</Text>
-                                    <Text style={styles.profession}>{user.profession}</Text>
-                                </View>
-                            </View>
-                        )}
-                        onSwipedLeft={() => console.log("Bỏ qua")}
-                        onSwipedRight={() => console.log("Thích")}
-                        stackSize={3}
-                        backgroundColor="transparent"
-                        containerStyle={styles.swiperContainerStyle}
-                    />
+  const handleLikeMatch = (id) => {
+    console.log('Like match with id:', id);
+  };
 
-                                                    {/* Left hover indicator (skip) */}
-                                                    {hoverSide === 'left' && (
-                                    <View style={styles.leftHoverIndicator}>
-                                        <FontAwesome name="times" size={40} color="orange" />
-                                    </View>
-                                )}
-                                
-                                {/* Right hover indicator (heart) */}
-                                {hoverSide === 'right' && (
-                                    <View style={styles.rightHoverIndicator}>
-                                        <FontAwesome name="heart" size={40} color={Colors.primaryColor} />
-                                    </View>
-                                )}  
-                </View>
-
-                <View style={styles.buttonsContainer}>
-                    <TouchableOpacity style={styles.skipButton} onPress={() => swiperRef.current.swipeLeft()}>
-                        <FontAwesome name="times" size={28} color="orange" />
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity style={styles.likeButton} onPress={() => swiperRef.current.swipeRight()}>
-                        <FontAwesome name="heart" size={40} color="white" />
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity style={styles.superLikeButton}>
-                        <FontAwesome name="star" size={28} color="purple" />
-                    </TouchableOpacity>
-                </View>
-
-            </View>
-        </SafeAreaView>
-    );
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Matches</Text>
+        <TouchableOpacity style={styles.filterButton}>
+          <Ionicons name="filter" size={24} color="#FF3366" />
+        </TouchableOpacity>
+      </View>
+      
+      <View style={styles.description}>
+        <Text style={styles.descriptionText}>
+          This is a list of people who have liked you and your matches.
+        </Text>
+      </View>
+      
+      <ScrollView style={styles.matchesList}>
+        <View style={styles.matchesGrid}>
+          {matches.map((match) => (
+            <MatchCard
+              key={match.id}
+              name={match.name}
+              age={match.age}
+              imageUrl={match.image}
+              onRemove={() => handleRemoveMatch(match.id)}
+              onLike={() => handleLikeMatch(match.id)}
+            />
+          ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
 };
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: '#fff',
-        paddingTop: Platform.OS === 'android' ? 25 : 0
-    },
-    container: {
-        flex: 1,
-        backgroundColor: "#fff",
-    },
-    headerContainer: {
-        paddingHorizontal: 20,
-        zIndex: 10,
-    },
-    header: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 10,
-    },
-    backButton: {
-        borderWidth: 1,
-        borderColor: "#ccc",
-        borderRadius: 10,
-        padding: 10,
-    },
-    swiperContainer: {
-        flex: 1
-    },
-    swiperContainerStyle: {
-        backgroundColor: 'transparent',
-    },
-    card: {
-        width: width * 0.9,
-        height: height * 0.6,
-        borderRadius: 10,
-        shadowColor: "#000",
-        shadowOpacity: 0.2,
-        shadowRadius: 5,
-        shadowOffset: { width: 0, height: 2 },
-        elevation: 5,
-        backgroundColor: '#fff',
-        zIndex: 1
-    },
-    image: {
-        width: "100%",
-        height: "100%",
-        borderRadius: 10,
-    },
-    overlay: {
-        position: "absolute",
-        bottom: 20,
-        left: 10,
-        right: 10,
-        backgroundColor: "rgba(0, 0, 0, 0.6)",
-        padding: 10,
-        borderRadius: 5,
-    },
-    distance: {
-        color: "white",
-        fontSize: 14,
-    },
-    name: {
-        color: "white",
-        fontSize: 22,
-        fontWeight: "bold",
-    },
-    profession: {
-        color: "white",
-        fontSize: 16,
-    },
-    buttonsContainer: {
-        flexDirection: "row",
-        justifyContent: "space-around",
-        alignItems: "center",
-        paddingBottom: 20,
-        paddingHorizontal: 30,
-        zIndex: 10,
-    },
-    skipButton: {
-        paddingVertical: 18,
-        paddingHorizontal: 20,
-        borderRadius: 50,
-        backgroundColor: "#f0f2f2",
-        elevation: 2,
-    },
-    likeButton: {
-        backgroundColor: Colors.primaryColor,
-        padding: 28,
-        borderRadius: 50,
-        elevation: 3,
-    },
-    superLikeButton: {
-        paddingVertical: 18,
-        paddingHorizontal: 20,
-        borderRadius: 50,
-        backgroundColor: "#f0f2f2",
-        elevation: 2,
-    },
-    // New styles for hover indicators
-    leftHoverIndicator: {
-        position: "absolute",
-        top: "50%",
-        left: "20%",
-        transform: [{ translateY: -30 }],
-        borderRadius: 50,
-        padding: 15,
-        zIndex: 2,
-        paddingVertical: 18,
-        paddingHorizontal: 20,
-        backgroundColor: "white",
-        elevation: 2,
-    },
-    rightHoverIndicator: {
-        position: "absolute",
-        top: "50%",
-        right: "20%",
-        transform: [{ translateY: -30 }],
-        backgroundColor: "white",
-        borderRadius: 50,
-        padding: 15,
-        zIndex: 2
-    }
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    backgroundColor: 'white',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  filterButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#eee',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  description: {
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  descriptionText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  matchesList: {
+    flex: 1,
+    paddingTop: 15,
+  },
+  matchesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 7,
+  },
+  matchCard: {
+    width: '50%',
+    padding: 8,
+  },
+  matchImage: {
+    width: '100%',
+    aspectRatio: 0.8,
+    borderRadius: 10,
+  },
+  matchInfo: {
+    position: 'absolute',
+    bottom: 50,
+    left: 16,
+    marginBottom: 10,
+  },
+  matchText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 24,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    backgroundColor: '#796c5a',
+    borderRadius: 30,
+    marginTop: -30,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  actionButton: {
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 50,
+    height: 50,
+    marginHorizontal: 20,
+    fontWeight: 'bold',
+  },
+  buttonDivider: {
+    width: 1,
+    backgroundColor: '#eee',
+  },
 });
 
-export default MatchScreen;
+export default MatchesScreen;

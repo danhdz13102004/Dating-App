@@ -12,6 +12,7 @@ import {
 import Icon from "react-native-vector-icons/Feather";
 import { Colors } from "../../constants/Colors";
 import { Image } from "react-native";
+import { router } from "expo-router";
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
@@ -37,9 +38,8 @@ const LoginScreen = () => {
               resizeMode="contain"
             />
 
-
           </View>
-          <Text style={styles.tagline}>Meet the right person</Text>
+           <Text style={styles.tagline}>Meet the right person</Text>
 
         </View>
 
@@ -82,12 +82,15 @@ const LoginScreen = () => {
             <Text style={styles.signInText}>SIGN IN</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.signUpButton}>
+          <TouchableOpacity 
+            style={styles.signUpButton}
+            onPress={() => {
+              router.push("/(auth)/register"); // Navigate to the register screen
+            }}
+          >
             <Text style={styles.signUpText}>SIGNUP</Text>
           </TouchableOpacity>
         </View>
-
-
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -190,8 +193,6 @@ const styles = StyleSheet.create({
     height: 60,
     // marginBottom: 10,
   },
-
-
 });
 
 export default LoginScreen;
