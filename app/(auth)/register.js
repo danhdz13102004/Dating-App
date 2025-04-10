@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { Colors } from '../../constants/Colors'
 import { router } from 'expo-router'
+import appConfig from '../../configs/config'
 
 const Register = ({ navigation }) => {
   const [username, setUsername] = useState('')
@@ -63,6 +64,11 @@ const Register = ({ navigation }) => {
       return false
     }
     setPasswordError('')
+
+    if (confirmPassword && password !== confirmPassword) {
+      setConfirmPasswordError('Passwords do not match')
+      return false
+    }
     return true
   }
 
@@ -92,12 +98,12 @@ const Register = ({ navigation }) => {
 
     if (validateForm()) {
       try {
-        setGeneralError('') // Clear any previous errors
+        setGeneralError('')
         
-        // Show loading state (you could add a loading state if you want)
+        // Show loading state
         
         // Make API request to your server
-        const response = await fetch('http://192.168.189.2:6969/v1/api/auth/register', {
+        const response = await fetch(`${appConfig.API_URL}/auth/register`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -165,6 +171,8 @@ const Register = ({ navigation }) => {
                 if (usernameError) setUsernameError('')
               }}
               onBlur={validateUsername}
+              autoCapitalize='none'
+              autoFocus
             />
           </View>
           <View style={styles.errorContainer}>
@@ -199,9 +207,18 @@ const Register = ({ navigation }) => {
               onChangeText={(text) => {
                 setPassword(text)
                 if (passwordError) setPasswordError('')
+
+                if (confirmPassword) {
+                  if (text === confirmPassword) {
+                    setConfirmPasswordError('')
+                  } else {
+                    setConfirmPasswordError('Passwords do not match')
+                  }
+                }
               }}
               onBlur={validatePassword}
               secureTextEntry={!showPassword}
+              autoCapitalize='none'
             />
             <TouchableOpacity 
               style={styles.eyeButton} 
@@ -227,9 +244,18 @@ const Register = ({ navigation }) => {
               onChangeText={(text) => {
                 setConfirmPassword(text)
                 if (confirmPasswordError) setConfirmPasswordError('')
+
+                if (password) {
+                  if (text === password) {
+                    setPasswordError('')
+                  } else {
+                    setConfirmPasswordError('Passwords do not match')
+                  }
+                }
               }}
               onBlur={validateConfirmPassword}
               secureTextEntry={!showConfirmPassword}
+              autoCapitalize='none'
             />
             <TouchableOpacity 
               style={styles.eyeButton} 
