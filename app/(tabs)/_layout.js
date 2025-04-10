@@ -37,7 +37,7 @@ export default function Layout() {
       }}
     >
       <Tabs.Screen
-        name="match"
+        name="discover"
         options={{
           title: "",
           headerShown: false,
@@ -54,6 +54,20 @@ export default function Layout() {
                 size={24}
                 color="black"
               />
+            ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="match"
+        options={{
+          title: "",
+          headerShown: false,
+          tabBarIcon: ({ focused }) =>
+            focused ? (
+              <AntDesign name="heart" size={24} color={Colors.primaryColor} />
+            ) : (
+              <AntDesign name="hearto" size={24} color="black" />
             ),
         }}
       />
