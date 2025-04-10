@@ -1,17 +1,16 @@
-const app = require('./src/app')
+'use strict'
+
+require('dotenv').config()
+const appConfig = require('./src/configs/app.config')
 const database = require('./src/databases/connection.db')
-const dotenv = require('dotenv')
-
-dotenv.config()
-
-const PORT = process.env.PORT || 3055
+const app = require('./src/app')
 
 async function startServer() {
-  let server
   try {
     await database.connect()
-    server = app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`)
+
+    const server = app.listen(appConfig.PORT, () => {
+      console.log(`Server is running on port ${appConfig.PORT}`)
     })
 
     process.on('SIGINT', async () => {

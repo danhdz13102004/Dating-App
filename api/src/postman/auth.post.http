@@ -1,0 +1,12 @@
+@url=http://localhost:6969/v1/api
+
+## Register
+POST {{url}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Nguyễn Hữu Phúc",
+  "email": "puck@gmail.com",
+  "password": "123456789",
+  "confirmPassword": "123456789"
+}

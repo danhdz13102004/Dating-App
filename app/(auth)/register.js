@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 import {
   View,
   Text,
@@ -9,91 +9,128 @@ import {
   StatusBar,
   ScrollView,
   Image
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/Colors';
-import { router } from 'expo-router';
+} from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
+import { Colors } from '../../constants/Colors'
+import { router } from 'expo-router'
 
 const Register = ({ navigation }) => {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   
   // Error states
-  const [usernameError, setUsernameError] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [confirmPasswordError, setConfirmPasswordError] = useState('');
-  const [generalError, setGeneralError] = useState('');
+  const [usernameError, setUsernameError] = useState('')
+  const [emailError, setEmailError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [confirmPasswordError, setConfirmPasswordError] = useState('')
+  const [generalError, setGeneralError] = useState('')
 
   const validateUsername = () => {
     if (!username.trim()) {
-      setUsernameError('Username is required');
-      return false;
+      setUsernameError('Username is required')
+      return false
     } else if (username.length < 3) {
-      setUsernameError('Username must be at least 3 characters');
-      return false;
+      setUsernameError('Username must be at least 3 characters')
+      return false
     }
-    setUsernameError('');
-    return true;
+    setUsernameError('')
+    return true
   }
 
   const validateEmail = () => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!email.trim()) {
-      setEmailError('Email is required');
-      return false;
+      setEmailError('Email is required')
+      return false
     } else if (!emailRegex.test(email)) {
-      setEmailError('Please enter a valid email address');
-      return false;
+      setEmailError('Please enter a valid email address')
+      return false
     }
-    setEmailError('');
-    return true;
-  };
+    setEmailError('')
+    return true
+  }
 
   const validatePassword = () => {
     if (!password) {
-      setPasswordError('Password is required');
-      return false;
+      setPasswordError('Password is required')
+      return false
     } else if (password.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
-      return false;
+      setPasswordError('Password must be at least 6 characters')
+      return false
     }
-    setPasswordError('');
-    return true;
-  };
+    setPasswordError('')
+    return true
+  }
 
   const validateConfirmPassword = () => {
     if (!confirmPassword) {
-      setConfirmPasswordError('Please confirm your password');
-      return false;
+      setConfirmPasswordError('Please confirm your password')
+      return false
     } else if (password !== confirmPassword) {
-      setConfirmPasswordError('Passwords do not match');
-      return false;
+      setConfirmPasswordError('Passwords do not match')
+      return false
     }
-    setConfirmPasswordError('');
-    return true;
-  };
+    setConfirmPasswordError('')
+    return true
+  }
 
   const validateForm = () => {
-    const isUsernameValid = validateUsername();
-    const isEmailValid = validateEmail();
-    const isPasswordValid = validatePassword();
-    const isConfirmPasswordValid = validateConfirmPassword();
+    const isUsernameValid = validateUsername()
+    const isEmailValid = validateEmail()
+    const isPasswordValid = validatePassword()
+    const isConfirmPasswordValid = validateConfirmPassword()
     
-    return isUsernameValid && isEmailValid && isPasswordValid && isConfirmPasswordValid;
-  };
+    return isUsernameValid && isEmailValid && isPasswordValid && isConfirmPasswordValid
+  }
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
+    console.log("Sign Up Button Pressed")
+
     if (validateForm()) {
-      console.log('Sign up with:', { username, email, password });
-      
-      alert('Registration successful!');
+      try {
+        setGeneralError('') // Clear any previous errors
+        
+        // Show loading state (you could add a loading state if you want)
+        
+        // Make API request to your server
+        const response = await fetch('http://192.168.189.2:6969/v1/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: username, // Matching your server's expected fields
+            email: email,
+            password: password,
+            confirmPassword: confirmPassword,
+          }),
+        })
+        
+        // Parse the response
+        const data = await response.json()
+        
+        // Check if registration was successful
+        if (response.ok) {
+          // Registration successful
+          console.log('Registration successful:', data)
+          alert('Registration successful!')
+
+          router.push('(auth)/login')
+        } else {
+          // Registration failed - show error message from server
+          console.log('Registration failed:', data)
+          setGeneralError(data.message || 'Registration failed. Please try again.')
+        }
+      } catch (error) {
+        console.error('Registration error:', error)
+        setGeneralError('Network error. Please check your connection and try again.')
+      }
     }
-  };
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -124,8 +161,8 @@ const Register = ({ navigation }) => {
               placeholder="Username"
               value={username}
               onChangeText={(text) => {
-                setUsername(text);
-                if (usernameError) setUsernameError('');
+                setUsername(text)
+                if (usernameError) setUsernameError('')
               }}
               onBlur={validateUsername}
             />
@@ -141,8 +178,8 @@ const Register = ({ navigation }) => {
               placeholder="Email"
               value={email}
               onChangeText={(text) => {
-                setEmail(text);
-                if (emailError) setEmailError('');
+                setEmail(text)
+                if (emailError) setEmailError('')
               }}
               onBlur={validateEmail}
               keyboardType="email-address"
@@ -160,8 +197,8 @@ const Register = ({ navigation }) => {
               placeholder="Password"
               value={password}
               onChangeText={(text) => {
-                setPassword(text);
-                if (passwordError) setPasswordError('');
+                setPassword(text)
+                if (passwordError) setPasswordError('')
               }}
               onBlur={validatePassword}
               secureTextEntry={!showPassword}
@@ -188,8 +225,8 @@ const Register = ({ navigation }) => {
               placeholder="Confirm Password"
               value={confirmPassword}
               onChangeText={(text) => {
-                setConfirmPassword(text);
-                if (confirmPasswordError) setConfirmPasswordError('');
+                setConfirmPassword(text)
+                if (confirmPasswordError) setConfirmPasswordError('')
               }}
               onBlur={validateConfirmPassword}
               secureTextEntry={!showConfirmPassword}
@@ -232,8 +269,8 @@ const Register = ({ navigation }) => {
       {/* Bottom Indicator */}
       <View style={styles.bottomBar} />
     </SafeAreaView>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -349,6 +386,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     borderRadius: 3
   },
-});
+})
 
-export default Register;
+export default Register

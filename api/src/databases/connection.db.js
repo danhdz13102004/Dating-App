@@ -1,12 +1,10 @@
 'use strict';
 const mongoose = require('mongoose')
-const dotenv = require('dotenv')
-
-dotenv.config()
+const databaseConfig = require('../configs/database.config')
 
 class Database {
   constructor() {
-    this.connectionString = process.env.MONGODB_URI || 'mongodb://localhost:27017/dating-app'
+    this.connectionString = databaseConfig.MONGO_URI || `mongodb://${databaseConfig.MONGO_HOST}:${databaseConfig.MONGO_PORT}/${databaseConfig.MONGO_DB}`
     this.connection = null
   }
 
