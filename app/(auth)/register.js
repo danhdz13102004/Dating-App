@@ -103,7 +103,9 @@ const Register = ({ navigation }) => {
         // Show loading state
         
         // Make API request to your server
-        const response = await fetch(`${appConfig.API_URL}/auth/register`, {
+        const url = `${appConfig.API_URL}/auth/register`
+        console.log("URL: ", url)
+        const response = await fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
