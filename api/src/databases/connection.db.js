@@ -5,6 +5,7 @@ const databaseConfig = require('../configs/database.config')
 class Database {
   constructor() {
     this.connectionString = databaseConfig.MONGO_URI || `mongodb://${databaseConfig.MONGO_HOST}:${databaseConfig.MONGO_PORT}/${databaseConfig.MONGO_DB}`
+    console.log('Database connection string:', this.connectionString)
     this.connection = null
   }
 
