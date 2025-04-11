@@ -12,15 +12,23 @@ const time_format = (time) =>{
   let hour = Math.round(min/60)
   return hour+'h ago'; 
 }
-const NotificationItem = ({ time, message, isSeen, isPost, username }) => {
+const NotificationItem = ({ time, message, isSeen, isPost, username, url }) => {
   return (
     <View style={isSeen?styles.notificationItem_seen:styles.notificationItem_unseen}>
       <View style={styles.notificationIconContainer}>
         {isSeen ? (
-          <View style={styles.greyIcon} />
+          <Image 
+            source={{ uri: url }}
+            style={styles.image} 
+            contentFit="cover"
+          />
         ) : (
           <View style={styles.iconWithBadge}>
-            <View style={styles.greyIcon} />
+            <Image 
+              source={{ uri: url }}
+              style={styles.image} 
+              contentFit="cover"
+            />
             <View style={styles.redBadge} />
           </View>
         )}
@@ -63,6 +71,7 @@ const NotificationsScreen = () => {
           time={60}
           username={'Danh'} 
           isSeen={false}
+          url = 'https://picsum.photos/200'
         />
         
         <View style={styles.divider} />
@@ -71,6 +80,7 @@ const NotificationsScreen = () => {
           time={60} 
           username={'Phuc'}
           isSeen={false}
+          url = 'https://picsum.photos/200'
         />
         
         <View style={styles.divider} />
@@ -80,6 +90,7 @@ const NotificationsScreen = () => {
           message="Thanh xuan nhu mot tac tra ..." 
           isSeen={true}
           isPost={true}
+          url = 'https://picsum.photos/200'
           username="LinhBE"
         />
         
@@ -90,6 +101,7 @@ const NotificationsScreen = () => {
           isSeen={true}
           isPost={true}
           username="truong2em2tay"
+          url = 'https://picsum.photos/200'
         />
       </ScrollView>
     </SafeAreaView>
@@ -153,11 +165,12 @@ const styles = StyleSheet.create({
   notificationIconContainer: {
     marginRight: 15,
   },
-  greyIcon: {
+  image: {
     width: 40,
     height: 40,
     borderRadius: 8,
     backgroundColor: '#cccccc',
+    overflow: 'hidden'
   },
   iconWithBadge: {
     position: 'relative',

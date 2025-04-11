@@ -12,6 +12,7 @@ import { Image } from 'expo-image';
 import Icon from 'react-native-vector-icons/Feather'; 
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as ImagePicker from 'expo-image-picker';
+import {AsyncStorage} from 'react-native';
 
 const ProfileDetails = () => {
   const [firstName, setFirstName] = useState('David');
@@ -19,7 +20,21 @@ const ProfileDetails = () => {
   const [date, setDate] = useState(null);
   const [open, setOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [userID, setUserID] = useState(null)
   const placeholder = require("@/assets/images/placeholder_avatar.png");
+
+  getAuthToken = async () => {
+    try {
+      const authToken = await AsyncStorage.getItem('authToken');
+      if (authToken !== null) {
+        setUserID(authToken)
+        console.log(authToken);
+      }
+    } catch (error) {
+      console.log(''+error)
+    }
+  };
+
 
   
 
