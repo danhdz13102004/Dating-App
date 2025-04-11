@@ -20,23 +20,7 @@ const ProfileDetails = () => {
   const [date, setDate] = useState(null);
   const [open, setOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
-  const [userID, setUserID] = useState(null)
   const placeholder = require("@/assets/images/placeholder_avatar.png");
-
-  getAuthToken = async () => {
-    try {
-      const authToken = await AsyncStorage.getItem('authToken');
-      if (authToken !== null) {
-        setUserID(authToken)
-        console.log(authToken);
-      }
-    } catch (error) {
-      console.log(''+error)
-    }
-  };
-
-
-  
 
   const pickImageAsync = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
