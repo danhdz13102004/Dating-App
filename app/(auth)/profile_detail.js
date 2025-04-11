@@ -12,6 +12,7 @@ import { Image } from 'expo-image';
 import Icon from 'react-native-vector-icons/Feather'; 
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ProfileDetails = () => {
   const [firstName, setFirstName] = useState('David');
@@ -19,9 +20,25 @@ const ProfileDetails = () => {
   const [date, setDate] = useState(null);
   const [open, setOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [userId, setUserId] = useState(null)
+  const [avatarURL, setAvatarURL] = useState(null)
   const placeholder = require("@/assets/images/placeholder_avatar.png");
-
   
+
+
+  const getUserId = async () => {
+    try {
+      const value = await AsyncStorage.getItem('authToken');
+      if (value !== null) {
+        //?? how to hash
+        setUserId(value);
+        console.log(value);
+      }
+    } catch (error) {
+      // Error retrieving data
+    }
+  };
+
 
   const pickImageAsync = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -59,9 +76,52 @@ const ProfileDetails = () => {
     hideDatePicker();
   };
 
-  const handleConfirm = ()=>{
-    // do something when click confirm button
+  const saveToDB = async (username, birthdate) => {
+    console.log(username, birthdate)
   }
+
+  const handleConfirm = async ()=>{
+    await cloudinaryUpload(selectedImage);
+    await saveToDB(firstName+' '+lastName, date);
+    
+  }
+
+  const cloudinaryUpload = async (photo) => {
+    const data = new FormData()
+    data.append('file', photo)
+    data.append('upload_preset', 'dating_app')
+    data.append('cloud_name', 'dviznelxv')
+    console.log(data)
+    fetch("https://api.cloudinary.com/v1_1/dviznelxv/image/upload", {
+      method: "post",
+      body: data
+    })
+    .then(res =>{
+      res.json()
+    } )
+    .catch(
+      err => console.log(err)
+    )
+    .then(data => {
+        setAvatarURL(data.secure_url)
+        console.log(data)
+        }).catch(err => {
+        Alert.alert("An Error Occured While Uploading")
+      })
+    }
+
+  ////////// for test ///////////////////////////////////////////////
+  const storeData = async (value) => {
+    try {
+      await AsyncStorage.setItem('authToken', value);
+    } catch (e) {
+      console.log(e)
+    }
+  };
+  storeData('U0001');
+  //////////////////////////////////////////////////////////////////
+
+  getUserId();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -130,8 +190,8 @@ const ProfileDetails = () => {
           onCancel={hideDatePicker}
         />
     
-        <TouchableOpacity style={styles.confirmButton}>
-          <Text style={styles.confirmText} onPress={handleConfirm}>Confirm</Text>
+        <TouchableOpacity style={styles.confirmButton}  onPress={handleConfirm}>
+          <Text style={styles.confirmText}>Confirm</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
