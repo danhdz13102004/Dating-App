@@ -12,7 +12,6 @@ import { Image } from 'expo-image';
 import Icon from 'react-native-vector-icons/Feather'; 
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as ImagePicker from 'expo-image-picker';
-import {AsyncStorage} from 'react-native';
 
 const ProfileDetails = () => {
   const [firstName, setFirstName] = useState('David');
