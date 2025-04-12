@@ -10,6 +10,16 @@ class AuthController {
 
     return res.status(201).json(result)
   }
+  
+  updateUserHobbies = async (req, res, next) => {
+    console.log(`[P]::UpdateUserHobbies::`, req.body);
+    const { userId, hobbies, replace } = req.body;
+    const result = await AuthService.updateUserHobbies({ userId, hobbies, replace });
+
+    console.log(`[P]::UpdateUserHobbies::Result::`, result);
+
+    return res.status(200).json(result);
+  };
 }
 
 module.exports = new AuthController();
