@@ -13,6 +13,8 @@ import Icon from 'react-native-vector-icons/Feather';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {CLOUDINARY_ENDPOINT, CLOUDINARY_PRESET} from '@env';
+import appConfig from '../../configs/config'
 
 const ProfileDetails = () => {
   const [firstName, setFirstName] = useState('David');
@@ -23,7 +25,6 @@ const ProfileDetails = () => {
   const [userId, setUserId] = useState(null)
   const [avatarURL, setAvatarURL] = useState(null)
   const placeholder = require("@/assets/images/placeholder_avatar.png");
-  
 
 
   const getUserId = async () => {
@@ -76,39 +77,63 @@ const ProfileDetails = () => {
     hideDatePicker();
   };
 
-  const saveToDB = async (username, birthdate) => {
-    console.log(username, birthdate)
+  const saveToDB = async (firstName,lastName, birthdate, avaURL) => {
+    if (firstName && lastName && birthdate && avaURL){
+      const url = `${appConfig.API_URL}/user/update`
+      console.log("URL: ", url)
+      await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userId,
+          name: firstName+' '+lastName, // Matching your server's expected fields
+          birthdate: birthdate,
+          avaURL: avaURL,
+        }),
+      }).then(res=>{
+        res.json()
+      }).then(data=>{
+        console.log(data)
+      })
+    }
+    else{
+      alert('Missing important field')
+    }
   }
 
   const handleConfirm = async ()=>{
     await cloudinaryUpload(selectedImage);
-    await saveToDB(firstName+' '+lastName, date);
+    await saveToDB(firstName, lastName, date, avatarURL);
     
   }
 
-  const cloudinaryUpload = async (photo) => {
-    const data = new FormData()
-    data.append('file', photo)
-    data.append('upload_preset', 'dating_app')
-    data.append('cloud_name', 'dviznelxv')
-    console.log(data)
-    fetch("https://api.cloudinary.com/v1_1/dviznelxv/image/upload", {
-      method: "post",
-      body: data
+  const cloudinaryUpload = async (imagePath) => {
+    const url = CLOUDINARY_ENDPOINT;
+    const formData = new FormData();
+    fileName = imagePath.split('/').pop()
+    console.log(fileName)
+    formData.append('file', {
+      uri: imagePath,
+      name: fileName,
+      type: 'image/jpg'
+    });
+    formData.append('upload_preset', CLOUDINARY_PRESET);
+
+    fetch(url, {
+      method: 'POST',
+      body: formData,
     })
-    .then(res =>{
-      res.json()
-    } )
-    .catch(
-      err => console.log(err)
-    )
-    .then(data => {
-        setAvatarURL(data.secure_url)
-        console.log(data)
-        }).catch(err => {
-        Alert.alert("An Error Occured While Uploading")
-      })
-    }
+    .then((response) => {
+      return response.text();
+    })
+    .then((data) => {
+      console.log(data)
+      setAvatarURL(data.url)
+    });
+    
+  }
 
   ////////// for test ///////////////////////////////////////////////
   const storeData = async (value) => {
