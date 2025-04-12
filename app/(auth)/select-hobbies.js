@@ -6,10 +6,14 @@ import {
   Pressable,
   StyleSheet,
   TouchableOpacity,
+  Alert
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Colors } from "../../constants/Colors";
+import appConfig from '../../configs/config';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from 'expo-router';
 
 const hobbiesList = [
   { id: 1, name: "Photography", icon: "camera" },
@@ -31,11 +35,58 @@ const hobbiesList = [
 const HobbySelector = () => {
   const [selectedHobbies, setSelectedHobbies] = useState([]);
 
+
   const toggleHobby = (hobby) => {
     setSelectedHobbies((prev) =>
       prev.includes(hobby) ? prev.filter((h) => h !== hobby) : [...prev, hobby]
     );
   };
+
+  const updateHobbies = async () => {
+    try {
+      // Get userId from AsyncStorage
+      const userData = await AsyncStorage.getItem('authToken');
+      const userId = "67f8703e9788ec66e79bed9c";
+      console.log("User ID: ", userId);
+      
+      if (!userId) {
+        Alert.alert('Error', 'User not found. Please log in again.');
+        return;
+      }
+
+      // Send request to update hobbies using fetch instead of axios
+      const url = `${appConfig.API_URL}/auth/update-hobbies`;
+      console.log("URL: ", url);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          hobbies: selectedHobbies,
+          replace: true
+        }),
+      });
+      
+      const data = await response.json();
+      console.log('Hobbies updated:', data);
+      
+      if (response.ok) {
+        router.push('/(tabs)/discover');
+      } else {
+        Alert.alert('Error', data.message || 'Failed to update hobbies');
+      }
+    } catch (error) {
+      console.error('Error updating hobbies:', error);
+      Alert.alert(
+        'Error',
+        'Failed to update hobbies. Please try again.'
+      );
+    }
+  };
+
 
   return (
     <View style={styles.container}>
@@ -78,7 +129,7 @@ const HobbySelector = () => {
       />
 
       {/* Continue Button */}
-      <TouchableOpacity style={styles.continueButton}>
+      <TouchableOpacity onPress={updateHobbies} style={styles.continueButton}>
         <Text style={styles.continueText}>Continue</Text>
       </TouchableOpacity>
     </View>
