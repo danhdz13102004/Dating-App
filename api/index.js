@@ -1,6 +1,9 @@
 'use strict'
+const path = require('path')
+const envPath = path.resolve(__dirname, '../.env')
+console.log('[DEBUG] Env Path:', envPath)
+require('dotenv').config({ path: envPath })
 
-require('dotenv').config()
 const appConfig = require('./src/configs/app.config')
 const database = require('./src/databases/connection.db')
 const app = require('./src/app')
