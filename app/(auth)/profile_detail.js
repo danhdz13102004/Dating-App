@@ -21,8 +21,6 @@ const ProfileDetails = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const placeholder = require("@/assets/images/placeholder_avatar.png");
 
-  
-
   const pickImageAsync = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
