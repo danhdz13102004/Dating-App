@@ -112,10 +112,12 @@ const MatchScreen = () => {
         if (index < users.length - 1) {
             setCurrentUser(users[index + 1]);
         }
+        setHoverSide(null);
     };
 
     // Function to clear hover state
     const clearHoverState = () => {
+        console.log("Clearing hover state");
         setHoverSide(null);
     };
 
@@ -178,15 +180,6 @@ const MatchScreen = () => {
                     <Swiper
                         ref={swiperRef}
                         cards={users}
-                        onSwiping={(direction) => {
-                            if (direction < 0) {
-                                setHoverSide('left');
-                            } else if (direction > 0) {
-                                setHoverSide('right');
-                            } else {
-                                setHoverSide(null);
-                            }
-                        }}
                         renderCard={(user) => (
                             <TouchableOpacity
                                 style={styles.card}
