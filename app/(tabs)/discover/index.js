@@ -1,15 +1,16 @@
-import React, { useState, useRef } from "react";
-import { 
-  View, 
-  Text, 
-  Image, 
-  StyleSheet, 
-  Dimensions, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  Platform,
-  Modal,
-  TouchableWithoutFeedback
+import React, { useState, useRef, useEffect } from "react";
+import {
+    View,
+    Text,
+    Image,
+    StyleSheet,
+    Dimensions,
+    TouchableOpacity,
+    SafeAreaView,
+    Platform,
+    Modal,
+    TouchableWithoutFeedback,
+    ScrollView
 } from "react-native";
 import Swiper from "react-native-deck-swiper";
 import { FontAwesome } from "@expo/vector-icons";
@@ -27,6 +28,16 @@ const users = [
         profession: "Professional model",
         image: "https://cdnphoto.dantri.com.vn/Im0W2Oa59BulrmFjQo1dOsDcBZY=/thumb_w/990/2021/10/30/trang-nhungdocx-1635528230350.jpeg",
         distance: "1 km",
+        location: "Chicago, IL United States",
+        about: "My name is Jessica Parker and I enjoy meeting new people and finding ways to help them. I have an uplifting experience. I enjoy reading.",
+        interests: ["Travelling", "Books", "Music", "Dancing", "Modeling"],
+        gallery: [
+            "https://picsum.photos/300/400?random=1",
+            "https://picsum.photos/300/400?random=2",
+            "https://picsum.photos/300/400?random=3",
+            "https://picsum.photos/300/400?random=4",
+            "https://picsum.photos/300/400?random=5",
+        ],
     },
     {
         id: 2,
@@ -35,6 +46,14 @@ const users = [
         profession: "Graphic Designer",
         image: "https://picsum.photos/200",
         distance: "2 km",
+        location: "New York, NY United States",
+        about: "Creative graphic designer with a passion for visual storytelling and innovative design solutions.",
+        interests: ["Design", "Photography", "Art", "Hiking", "Coffee"],
+        gallery: [
+            "https://picsum.photos/300/400?random=6",
+            "https://picsum.photos/300/400?random=7",
+            "https://picsum.photos/300/400?random=8",
+        ],
     },
     {
         id: 3,
@@ -43,6 +62,13 @@ const users = [
         profession: "Marketing Specialist",
         image: "https://picsum.photos/201",
         distance: "3 km",
+        location: "Los Angeles, CA United States",
+        about: "Marketing specialist with expertise in digital campaigns and brand development.",
+        interests: ["Marketing", "Social Media", "Travel", "Cooking", "Yoga"],
+        gallery: [
+            "https://picsum.photos/300/400?random=9",
+            "https://picsum.photos/300/400?random=10",
+        ],
     },
     {
         id: 4,
@@ -51,27 +77,47 @@ const users = [
         profession: "Software Engineer",
         image: "https://picsum.photos/202",
         distance: "4 km",
+        location: "San Francisco, CA United States",
+        about: "Software engineer focused on creating elegant solutions to complex problems.",
+        interests: ["Coding", "Technology", "Gaming", "Fitness", "Reading"],
+        gallery: [
+            "https://picsum.photos/300/400?random=11",
+            "https://picsum.photos/300/400?random=12",
+            "https://picsum.photos/300/400?random=13",
+        ],
     },
 ];
 
 const MatchScreen = () => {
     const swiperRef = useRef(null);
+    const scrollViewRef = useRef(null);
     const [hoverSide, setHoverSide] = useState(null); // null, 'left', or 'right'
     const [showFilters, setShowFilters] = useState(false);
     const [genderFilter, setGenderFilter] = useState('Girls');
-    
+    const [currentUser, setCurrentUser] = useState(users[0]);
+    const [showProfile, setShowProfile] = useState(false);
+
     // Distance filter settings
     const [distanceFilter, setDistanceFilter] = useState(40);
     const MAX_DISTANCE = 100; // Maximum distance in km
-    
+
     // Age filter settings
     const [ageRange, setAgeRange] = useState([20, 28]);
     const MIN_AGE = 18;
     const MAX_AGE = 50;
-    
+
+    // Handle swipe
+    const handleSwipe = (index) => {
+        // Update the current user to the next card
+        if (index < users.length - 1) {
+            setCurrentUser(users[index + 1]);
+        }
+        setHoverSide(null);
+    };
+
     // Function to clear hover state
     const clearHoverState = () => {
-        console.log("clearHoverState");
+        console.log("Clearing hover state");
         setHoverSide(null);
     };
 
@@ -79,14 +125,14 @@ const MatchScreen = () => {
     const toggleFiltersModal = () => {
         setShowFilters(!showFilters);
     };
-    
+
     // Function to reset filters
     const clearFilters = () => {
         setGenderFilter('Girls');
         setDistanceFilter(40);
         setAgeRange([20, 28]);
     };
-    
+
     // Handle age range change
     const handleAgeRangeChange = (type, value) => {
         if (type === 'min') {
@@ -96,49 +142,63 @@ const MatchScreen = () => {
         }
     };
 
+    // Toggle profile view
+    const toggleProfileView = () => {
+        setShowProfile(!showProfile);
+
+        // If showing profile, scroll to the top of it
+        if (!showProfile) {
+            setTimeout(() => {
+                scrollViewRef.current?.scrollTo({ y: height * 0.6, animated: true });
+            }, 100);
+        }
+    };
+
     return (
         <SafeAreaView style={styles.safeArea}>
-            <View style={styles.container}>
+            <ScrollView
+                ref={scrollViewRef}
+                style={styles.container}
+                nestedScrollEnabled={true}
+                scrollEventThrottle={16}
+                stickyHeaderIndices={[0]}
+            >
+                {/* Header */}
                 <View style={styles.headerContainer}>
                     <View style={styles.header}>
                         <TouchableOpacity style={styles.backButton}>
                             <MaterialIcons style={{ marginLeft: 5 }} name="arrow-back-ios" size={20} color={Colors.primaryColor} />
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.backButton} onPress={toggleFiltersModal}>
-                         <FontAwesome5 name="sliders-h" size={24} color={Colors.primaryColor} />
+                            <FontAwesome5 name="sliders-h" size={24} color={Colors.primaryColor} />
                         </TouchableOpacity>
                     </View>
                 </View>
 
+                {/* Swiper Component */}
                 <View style={styles.swiperContainer}>
                     <Swiper
                         ref={swiperRef}
                         cards={users}
-                        onSwiping={(direction) => {
-                            if (direction < 0) {
-                                setHoverSide('left');
-                            } else if (direction > 0) {
-                                setHoverSide('right');
-                            } else {
-                                setHoverSide(null);
-                            }
-                        }}
                         renderCard={(user) => (
-                            <View 
+                            <TouchableOpacity
                                 style={styles.card}
                                 onTouchEnd={clearHoverState}
+                                onPress={toggleProfileView}
+                                activeOpacity={0.95}
                             >
                                 <Image source={{ uri: user.image }} style={styles.image} />
-                                
+
                                 <View style={styles.overlay}>
                                     <Text style={styles.distance}>{user.distance}</Text>
                                     <Text style={styles.name}>{user.name}, {user.age}</Text>
                                     <Text style={styles.profession}>{user.profession}</Text>
                                 </View>
-                            </View>
+                            </TouchableOpacity>
                         )}
                         onSwipedLeft={() => console.log("Bỏ qua")}
                         onSwipedRight={() => console.log("Thích")}
+                        onSwiped={handleSwipe}
                         stackSize={3}
                         backgroundColor="transparent"
                         containerStyle={styles.swiperContainerStyle}
@@ -150,27 +210,83 @@ const MatchScreen = () => {
                             <FontAwesome name="times" size={40} color="orange" />
                         </View>
                     )}
-                    
+
                     {/* Right hover indicator (heart) */}
                     {hoverSide === 'right' && (
                         <View style={styles.rightHoverIndicator}>
                             <FontAwesome name="heart" size={40} color={Colors.primaryColor} />
                         </View>
-                    )}  
+                    )}
                 </View>
 
+                {/* Action Buttons */}
                 <View style={styles.buttonsContainer}>
                     <TouchableOpacity style={styles.skipButton} onPress={() => swiperRef.current.swipeLeft()}>
                         <FontAwesome name="times" size={28} color="orange" />
                     </TouchableOpacity>
-                    
+
                     <TouchableOpacity style={styles.likeButton} onPress={() => swiperRef.current.swipeRight()}>
                         <FontAwesome name="heart" size={40} color="white" />
                     </TouchableOpacity>
-                    
+
                     <TouchableOpacity style={styles.superLikeButton}>
                         <FontAwesome name="star" size={28} color="purple" />
                     </TouchableOpacity>
+                </View>
+
+                {/* Profile View (Similar to Image 1) */}
+                <View style={styles.profileContainer}>
+                    <View style={styles.profileHeader}>
+                        <Text style={styles.profileName}>{currentUser.name}, {currentUser.age}</Text>
+                        <TouchableOpacity style={styles.shareButton}>
+                            <FontAwesome5 name="share" size={18} color={Colors.primaryColor} />
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.locationContainer}>
+                        <FontAwesome5 name="map-marker-alt" size={12} color="#ff4466" style={{ marginRight: 5 }} />
+                        <Text style={styles.locationText}>{currentUser.location}</Text>
+                        <View style={styles.kmBadge}>
+                            <Text style={styles.kmText}>{currentUser.distance}</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.aboutSection}>
+                        <Text style={styles.sectionTitle}>About</Text>
+                        <Text style={styles.aboutText}>{currentUser.about}</Text>
+                        <TouchableOpacity>
+                            <Text style={styles.readMoreText}>Read more</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.interestsSection}>
+                        <Text style={styles.sectionTitle}>Interests</Text>
+                        <View style={styles.interestTags}>
+                            {currentUser.interests.map((interest, index) => (
+                                <View key={index} style={[styles.interestTag, index < 2 && styles.interestTagHighlighted]}>
+                                    <Text style={[styles.interestText, index < 2 && styles.interestTextHighlighted]}>
+                                        {index < 2 && <FontAwesome5 name={index === 0 ? "plane" : "book"} size={12} style={styles.interestIcon} />} {interest}
+                                    </Text>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+
+                    <View style={styles.gallerySection}>
+                        <View style={styles.galleryHeader}>
+                            <Text style={styles.sectionTitle}>Gallery</Text>
+                            <TouchableOpacity>
+                                <Text style={styles.seeAllText}>See all</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.galleryGrid}>
+                            {currentUser.gallery.slice(0, 6).map((image, index) => (
+                                <View key={index} style={[styles.galleryItem, (index === 2 || index === 5) && { marginRight: 0 }]}>
+                                    <Image source={{ uri: image }} style={styles.galleryImage} />
+                                </View>
+                            ))}
+                        </View>
+                    </View>
                 </View>
 
                 {/* Filters Modal */}
@@ -185,21 +301,21 @@ const MatchScreen = () => {
                             <TouchableWithoutFeedback>
                                 <View style={styles.filterModalContainer}>
                                     <View style={styles.filterModalHandle} />
-                                    
+
                                     <View style={styles.filterModalHeader}>
                                         <Text style={styles.filterModalTitle}>Filters</Text>
                                         <TouchableOpacity onPress={clearFilters}>
                                             <Text style={styles.clearText}>Clear</Text>
                                         </TouchableOpacity>
                                     </View>
-                                    
+
                                     {/* Gender Filter */}
                                     <View style={styles.filterSection}>
                                         <Text style={styles.filterSectionTitle}>Interested in</Text>
                                         <View style={styles.genderButtonsContainer}>
-                                            <TouchableOpacity 
+                                            <TouchableOpacity
                                                 style={[
-                                                    styles.genderButton, 
+                                                    styles.genderButton,
                                                     genderFilter === 'Girls' && styles.genderButtonActive
                                                 ]}
                                                 onPress={() => setGenderFilter('Girls')}
@@ -209,10 +325,10 @@ const MatchScreen = () => {
                                                     genderFilter === 'Girls' && styles.genderButtonTextActive
                                                 ]}>Girls</Text>
                                             </TouchableOpacity>
-                                            
-                                            <TouchableOpacity 
+
+                                            <TouchableOpacity
                                                 style={[
-                                                    styles.genderButton, 
+                                                    styles.genderButton,
                                                     genderFilter === 'Boys' && styles.genderButtonActive
                                                 ]}
                                                 onPress={() => setGenderFilter('Boys')}
@@ -222,10 +338,10 @@ const MatchScreen = () => {
                                                     genderFilter === 'Boys' && styles.genderButtonTextActive
                                                 ]}>Boys</Text>
                                             </TouchableOpacity>
-                                            
-                                            <TouchableOpacity 
+
+                                            <TouchableOpacity
                                                 style={[
-                                                    styles.genderButton, 
+                                                    styles.genderButton,
                                                     genderFilter === 'Any' && styles.genderButtonActive
                                                 ]}
                                                 onPress={() => setGenderFilter('Any')}
@@ -237,7 +353,7 @@ const MatchScreen = () => {
                                             </TouchableOpacity>
                                         </View>
                                     </View>
-                                    
+
                                     {/* Distance Filter */}
                                     <View style={styles.filterSection}>
                                         <View style={styles.filterSectionHeader}>
@@ -246,7 +362,7 @@ const MatchScreen = () => {
                                         </View>
                                         <View style={styles.sliderContainer}>
                                             <View style={styles.sliderTrack}>
-                                                <View style={[styles.sliderFill, {width: `${(distanceFilter/MAX_DISTANCE) * 100}%`}]} />
+                                                <View style={[styles.sliderFill, { width: `${(distanceFilter / MAX_DISTANCE) * 100}%` }]} />
                                             </View>
                                             <Slider
                                                 style={styles.slider}
@@ -258,11 +374,10 @@ const MatchScreen = () => {
                                                 minimumTrackTintColor="#FF4466"
                                                 maximumTrackTintColor="#E5E5E5"
                                                 thumbTintColor="#FF4466"
-                                                thumbStyle={styles.sliderThumb}
                                             />
                                         </View>
                                     </View>
-                                    
+
                                     {/* Age Filter */}
                                     <View style={styles.filterSection}>
                                         <View style={styles.filterSectionHeader}>
@@ -272,7 +387,7 @@ const MatchScreen = () => {
                                         <Text style={styles.sliderLabel}>Min: {ageRange[0]}</Text>
                                         <View style={styles.sliderContainer}>
                                             <View style={styles.sliderTrack}>
-                                                <View style={[styles.sliderFill, {width: `${((ageRange[0] - MIN_AGE) / (MAX_AGE - MIN_AGE)) * 100}%`}]} />
+                                                <View style={[styles.sliderFill, { width: `${((ageRange[0] - MIN_AGE) / (MAX_AGE - MIN_AGE)) * 100}%` }]} />
                                             </View>
                                             <Slider
                                                 style={styles.slider}
@@ -284,13 +399,12 @@ const MatchScreen = () => {
                                                 minimumTrackTintColor="#FF4466"
                                                 maximumTrackTintColor="#E5E5E5"
                                                 thumbTintColor="#FF4466"
-                                                thumbStyle={styles.sliderThumb}
                                             />
                                         </View>
                                         <Text style={styles.sliderLabel}>Max: {ageRange[1]}</Text>
                                         <View style={styles.sliderContainer}>
                                             <View style={styles.sliderTrack}>
-                                                <View style={[styles.sliderFill, {width: `${((ageRange[1] - MIN_AGE) / (MAX_AGE - MIN_AGE)) * 100}%`}]} />
+                                                <View style={[styles.sliderFill, { width: `${((ageRange[1] - MIN_AGE) / (MAX_AGE - MIN_AGE)) * 100}%` }]} />
                                             </View>
                                             <Slider
                                                 style={styles.slider}
@@ -302,13 +416,12 @@ const MatchScreen = () => {
                                                 minimumTrackTintColor="#FF4466"
                                                 maximumTrackTintColor="#E5E5E5"
                                                 thumbTintColor="#FF4466"
-                                                thumbStyle={styles.sliderThumb}
                                             />
                                         </View>
                                     </View>
-                                    
+
                                     {/* Continue Button */}
-                                    <TouchableOpacity 
+                                    <TouchableOpacity
                                         style={styles.continueButton}
                                         onPress={toggleFiltersModal}
                                     >
@@ -319,7 +432,7 @@ const MatchScreen = () => {
                         </View>
                     </TouchableWithoutFeedback>
                 </Modal>
-            </View>
+            </ScrollView>
         </SafeAreaView>
     );
 };
@@ -337,12 +450,13 @@ const styles = StyleSheet.create({
     headerContainer: {
         paddingHorizontal: 20,
         zIndex: 10,
+        backgroundColor: '#fff',
     },
     header: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: 10,
+        marginBottom: 0,
     },
     backButton: {
         borderWidth: 1,
@@ -351,7 +465,7 @@ const styles = StyleSheet.create({
         padding: 10,
     },
     swiperContainer: {
-        flex: 1
+        height: height * 0.6,
     },
     swiperContainerStyle: {
         backgroundColor: 'transparent',
@@ -399,9 +513,11 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-around",
         alignItems: "center",
-        paddingBottom: 20,
+        paddingVertical: 40,
         paddingHorizontal: 30,
+        marginTop: 60,
         zIndex: 10,
+        backgroundColor: '#fff',
     },
     skipButton: {
         paddingVertical: 18,
@@ -447,7 +563,131 @@ const styles = StyleSheet.create({
         padding: 15,
         zIndex: 2
     },
-    
+
+    // Profile Styles
+    profileContainer: {
+        backgroundColor: '#fff',
+        paddingHorizontal: 20,
+        paddingBottom: 50,
+    },
+    profileHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15,
+        marginTop: 10,
+    },
+    profileName: {
+        fontSize: 24,
+        fontWeight: 'bold',
+    },
+    shareButton: {
+        padding: 10,
+        borderWidth: 1,
+        borderColor: "#eee",
+        borderRadius: 20,
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    locationContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 25,
+    },
+    locationText: {
+        color: '#555',
+        fontSize: 14,
+        flex: 1,
+    },
+    kmBadge: {
+        backgroundColor: '#ffe5e9',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 10,
+    },
+    kmText: {
+        color: '#ff4466',
+        fontSize: 12,
+        fontWeight: '500',
+    },
+    aboutSection: {
+        marginBottom: 25,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 12,
+    },
+    aboutText: {
+        color: '#555',
+        lineHeight: 20,
+        marginBottom: 5,
+    },
+    readMoreText: {
+        color: Colors.primaryColor,
+        fontWeight: '600',
+    },
+    interestsSection: {
+        marginBottom: 25,
+    },
+    interestTags: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+    },
+    interestTag: {
+        borderWidth: 1,
+        borderColor: '#eee',
+        borderRadius: 20,
+        paddingHorizontal: 15,
+        paddingVertical: 8,
+        marginRight: 10,
+        marginBottom: 10,
+    },
+    interestTagHighlighted: {
+        borderColor: Colors.primaryColor,
+        backgroundColor: '#ffe5e9',
+    },
+    interestText: {
+        color: '#555',
+    },
+    interestTextHighlighted: {
+        color: Colors.primaryColor,
+    },
+    interestIcon: {
+        marginRight: 5,
+    },
+    gallerySection: {
+        marginBottom: 30,
+    },
+    galleryHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    seeAllText: {
+        color: Colors.primaryColor,
+        fontWeight: '600',
+    },
+    galleryGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+    },
+    galleryItem: {
+        width: '32%',
+        aspectRatio: 1,
+        marginBottom: 10,
+        borderRadius: 8,
+        overflow: 'hidden',
+    },
+    galleryImage: {
+        width: '100%',
+        height: '100%',
+    },
+
     // Filter Modal Styles
     modalOverlay: {
         flex: 1,
@@ -525,7 +765,7 @@ const styles = StyleSheet.create({
     genderButtonTextActive: {
         color: 'white',
     },
-    // New slider styles
+    // Slider styles
     sliderContainer: {
         width: '100%',
         height: 40,

@@ -4,7 +4,7 @@ const User = require("../models/User")
 const { hashPassword } = require("../utils/bcrypt")
 const crypto = require('crypto')
 const HttpStatus = require("../core/httpStatus")
-const { ConflictRequestError } = require("../core/error.response")
+const { ConflictRequestError, NotFoundError } = require("../core/error.response")
 
 class AuthService {
   static register = async ({ name, email, password }) => {
@@ -34,6 +34,42 @@ class AuthService {
       }
     }
   }
+
+  static updateUserHobbies = async ({ userId, hobbies, replace = true }) => {
+    if (!Array.isArray(hobbies)) {
+      throw new Error('Hobbies must be an array of strings');
+    }
+
+    // Find the user
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    // Update hobbies based on replace parameter
+    if (replace) {
+      // Replace all existing hobbies
+      user.hobbies = hobbies;
+    } else {
+      // Append new hobbies without duplicates
+      const uniqueHobbies = new Set([...user.hobbies, ...hobbies]);
+      user.hobbies = Array.from(uniqueHobbies);
+    }
+
+    // Save the updated user
+    await user.save();
+
+    return {
+      status: 'success',
+      message: 'Hobbies updated successfully',
+      data: {
+        userId: user._id,
+        hobbies: user.hobbies
+      }
+    };
+  }
+
+
 }
 
 module.exports = AuthService
