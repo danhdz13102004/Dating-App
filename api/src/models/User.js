@@ -20,6 +20,7 @@ const userSchema = new mongoose.Schema({
         minAge: { type: Number, default: 18 },
         maxAge: { type: Number, default: 100 }
     },
+    skippedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 }, { timestamps: true });
 
 const User = mongoose.model('User', userSchema);
