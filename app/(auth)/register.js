@@ -15,6 +15,8 @@ import { Colors } from '../../constants/Colors'
 import { router } from 'expo-router'
 import appConfig from '../../configs/config'
 
+
+
 const Register = ({ navigation }) => {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')

@@ -13,14 +13,107 @@ import Icon from "react-native-vector-icons/Feather";
 import { Colors } from "../../constants/Colors";
 import { Image } from "react-native";
 import { router } from "expo-router";
+import appConfig from '../../configs/config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Error states
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [generalError, setGeneralError] = useState('');
 
   const togglePasswordVisibility = () => {
     setPasswordVisible(!passwordVisible);
+  };
+
+  const validateEmail = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!email.trim()) {
+      setEmailError('Email is required')
+      return false
+    } else if (!emailRegex.test(email)) {
+      setEmailError('Please enter a valid email address')
+      return false
+    }
+    setEmailError('')
+    return true
+  }
+
+  const validatePassword = () => {
+    if (!password) {
+      setPasswordError('Password is required')
+      return false
+    }
+    setPasswordError('')
+    return true
+  }
+
+  const validateForm = () => {
+    const isEmailValid = validateEmail()
+    const isPasswordValid = validatePassword()
+
+    return isEmailValid && isPasswordValid
+  }
+
+  const handleLogin = async () => {
+    console.log("Login Button Pressed");
+
+    if (validateForm()) {
+      try {
+        setGeneralError('');
+        setIsLoading(true);
+
+        // Make API request to your server
+        const url = `${appConfig.API_URL}/auth/login`;
+        console.log("Login URL: ", url);
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email,
+            password: password,
+          }),
+        });
+
+        // Parse the response
+        const data = await response.json();
+
+        // Check if login was successful
+        if (response.ok) {
+          // Login successful
+          console.log('Login successful:', data);
+
+          // Check if token is available in response
+          if (data.data && data.data.token) {
+            // Save token to AsyncStorage
+            await AsyncStorage.setItem('authToken', data.data.token);
+            console.log('Token saved to AsyncStorage successfully');
+            
+            // Navigate to main app
+            router.replace("/(tabs)/bio"); // Adjust route based on your app structure
+          } else {
+            setGeneralError('Invalid server response. Missing authentication token.');
+          }
+        } else {
+          // Login failed - show error message from server
+          console.log('Login failed:', data);
+          setGeneralError(data.message || 'Login failed. Please check your credentials and try again.');
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        setGeneralError('Network error. Please check your connection and try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
   };
 
   return (
@@ -39,7 +132,7 @@ const LoginScreen = () => {
             />
 
           </View>
-           <Text style={styles.tagline}>Meet the right person</Text>
+          <Text style={styles.tagline}>Meet the right person</Text>
 
         </View>
 
@@ -78,11 +171,14 @@ const LoginScreen = () => {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.signInButton}>
+          <TouchableOpacity
+            style={styles.signInButton}
+            onPress={handleLogin}  // Thêm hàm xử lý sự kiện nhấn
+          >
             <Text style={styles.signInText}>SIGN IN</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.signUpButton}
             onPress={() => {
               router.push("/(auth)/register"); // Navigate to the register screen

@@ -10,6 +10,17 @@ class AuthController {
 
     return res.status(201).json(result)
   }
+
+  
+  login = async (req, res, next) => {
+    try {
+      const { email, password } = req.body;
+      const result = await AuthService.login({ email, password });
+      return res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
   
   updateUserHobbies = async (req, res, next) => {
     console.log(`[P]::UpdateUserHobbies::`, req.body);
@@ -22,4 +33,4 @@ class AuthController {
   };
 }
 
-module.exports = new AuthController();
+module.exports = new AuthController()
