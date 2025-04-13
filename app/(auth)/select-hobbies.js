@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { Colors } from "../../constants/Colors";
 import appConfig from '../../configs/config';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from 'expo-router';
+import { jwtDecode } from "jwt-decode";
 
 const hobbiesList = [
   { id: 1, name: "Photography", icon: "camera" },
@@ -34,7 +35,28 @@ const hobbiesList = [
 
 const HobbySelector = () => {
   const [selectedHobbies, setSelectedHobbies] = useState([]);
+  const [userId, setUserId] = useState(null);
 
+  useEffect(() => {
+    const fetchUserId = async () => {
+      try {
+        const token = await AsyncStorage.getItem('authToken');
+        if (token) {
+          const decoded = jwtDecode(token);
+          setUserId(decoded.userId);
+        }
+        else {
+          console.log('No token found, redirecting to login');
+          router.replace('/(auth)/login');
+        }
+      } catch (error) {
+        console.error("Error fetching user ID:", error);
+      }
+    };
+
+    fetchUserId();
+    // Set default selected hobbies if needed
+  }), [];
 
   const toggleHobby = (hobby) => {
     setSelectedHobbies((prev) =>
@@ -44,11 +66,9 @@ const HobbySelector = () => {
 
   const updateHobbies = async () => {
     try {
-      // Get userId from AsyncStorage
-      const userData = await AsyncStorage.getItem('authToken');
-      const userId = "67f8703e9788ec66e79bed9c";
+
       console.log("User ID: ", userId);
-      
+
       if (!userId) {
         Alert.alert('Error', 'User not found. Please log in again.');
         return;
@@ -57,7 +77,7 @@ const HobbySelector = () => {
       // Send request to update hobbies using fetch instead of axios
       const url = `${appConfig.API_URL}/auth/update-hobbies`;
       console.log("URL: ", url);
-      
+
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -69,10 +89,10 @@ const HobbySelector = () => {
           replace: true
         }),
       });
-      
+
       const data = await response.json();
       console.log('Hobbies updated:', data);
-      
+
       if (response.ok) {
         router.push('/(tabs)/discover');
       } else {
@@ -93,7 +113,7 @@ const HobbySelector = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton}>
-          <MaterialIcons style={{ marginLeft: 5 }}  name="arrow-back-ios" size={20} color={Colors.primaryColor} />
+          <MaterialIcons style={{ marginLeft: 5 }} name="arrow-back-ios" size={20} color={Colors.primaryColor} />
         </TouchableOpacity>
         <TouchableOpacity>
           <Text style={styles.skipText}>Skip</Text>

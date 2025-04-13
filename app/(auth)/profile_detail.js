@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -13,8 +13,8 @@ import Icon from 'react-native-vector-icons/Feather';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {CLOUDINARY_ENDPOINT, CLOUDINARY_PRESET} from '@env';
 import appConfig from '../../configs/config'
+import { jwtDecode } from 'jwt-decode';
 
 const ProfileDetails = () => {
   const [firstName, setFirstName] = useState('David');
@@ -27,18 +27,26 @@ const ProfileDetails = () => {
   const placeholder = require("@/assets/images/placeholder_avatar.png");
 
 
-  const getUserId = async () => {
-    try {
-      const value = await AsyncStorage.getItem('authToken');
-      if (value !== null) {
-        //?? how to hash
-        setUserId(value);
-        console.log(value);
+  useEffect(() => {
+    const fetchUserId = async () => {
+      try {
+        const token = await AsyncStorage.getItem('authToken');
+        if (token) {
+          const decoded = jwtDecode(token);
+          setUserId(decoded.userId);
+          console.log("User ID: ", decoded.userId);
+        }
+        else {
+          console.log('No token found, redirecting to login');
+          router.replace('/(auth)/login');
+        }
+      } catch (error) {
+        console.error("Error fetching user ID:", error);
       }
-    } catch (error) {
-      // Error retrieving data
-    }
-  };
+    };
+
+    fetchUserId();
+  }), [];
 
 
   const pickImageAsync = async () => {
@@ -105,22 +113,23 @@ const ProfileDetails = () => {
   }
 
   const handleConfirm = async ()=>{
+    console.log("Confirm Button Pressed");
     await cloudinaryUpload(selectedImage);
-    await saveToDB(firstName, lastName, date, avatarURL, userId);
+
     
   }
 
   const cloudinaryUpload = async (imagePath) => {
-    const url = CLOUDINARY_ENDPOINT;
+    const url = process.env.EXPO_PUBLIC_CLOUDINARY_ENDPOINT;
     const formData = new FormData();
     fileName = imagePath.split('/').pop()
-    console.log(fileName)
+    console.log("File Name: ", fileName);
     formData.append('file', {
       uri: imagePath,
       name: fileName,
       type: 'image/jpg'
     });
-    formData.append('upload_preset', CLOUDINARY_PRESET);
+    formData.append('upload_preset', process.env.EXPO_PUBLIC_CLOUDINARY_PRESET);
 
     await fetch(url, {
       method: 'POST',
@@ -132,22 +141,22 @@ const ProfileDetails = () => {
     .then((data) => {
       console.log(data)
       setAvatarURL(data["url"])
+      saveToDB(firstName, lastName, date, data["url"], userId);
     });
     
   }
 
   ////////// for test ///////////////////////////////////////////////
-  const storeData = async (value) => {
-    try {
-      await AsyncStorage.setItem('authToken', value);
-    } catch (e) {
-      console.log(e)
-    }
-  };
-  storeData('67fb1dc83f35cac28bea0ea6');
+  // const storeData = async (value) => {
+  //   try {
+  //     await AsyncStorage.setItem('authToken', value);
+  //   } catch (e) {
+  //     console.log(e)
+  //   }
+  // };
+  // storeData('67fb1dc83f35cac28bea0ea6');
   //////////////////////////////////////////////////////////////////
 
-  getUserId();
 
   return (
     <SafeAreaView style={styles.container}>
