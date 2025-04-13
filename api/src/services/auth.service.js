@@ -1,9 +1,12 @@
 'use strict'
 
 const User = require("../models/User")
-const { hashPassword } = require("../utils/bcrypt")
+const { hashPassword, comparePassword } = require("../utils/bcrypt")
 const crypto = require('crypto')
 const HttpStatus = require("../core/httpStatus")
+const jwt = require('jsonwebtoken');
+
+
 const { ConflictRequestError, NotFoundError } = require("../core/error.response")
 
 class AuthService {
@@ -34,6 +37,38 @@ class AuthService {
       }
     }
   }
+  static login = async ({ email, password }) => {
+    // Kiểm tra email có tồn tại trong cơ sở dữ liệu hay không
+    const user = await User.findOne({ email }).lean();
+    if (!user) {
+      console.log('Email không tồn tại');
+      throw new UnauthorizedError('Email không tồn tại');
+    }
+
+    // Kiểm tra mật khẩu
+    const isPasswordValid = await comparePassword(password, user.password);
+    if (!isPasswordValid) {
+      console.log('Mật khẩu không đúng');
+      throw new UnauthorizedError('Mật khẩu không đúng');
+    }
+
+    // Tạo token JWT chỉ chứa userId
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    return {
+      status: 'success',
+      message: 'Đăng nhập thành công',
+      data: {
+        token, // Token JWT
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+        },
+      },
+    };
+  };
+
 
   static updateUserHobbies = async ({ userId, hobbies, replace = true }) => {
     if (!Array.isArray(hobbies)) {

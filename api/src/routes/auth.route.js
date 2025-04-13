@@ -7,5 +7,8 @@ const router = express.Router()
 
 router.post('/register', asyncHandler(authController.register))
 
+router.post('/login', asyncHandler(authController.login))
+
 router.post('/update-hobbies', asyncHandler(authController.updateUserHobbies));
+
 module.exports = router
