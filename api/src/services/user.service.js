@@ -5,18 +5,17 @@ const HttpStatus = require("../core/httpStatus")
 const { ConflictRequestError } = require("../core/error.response")
 
 class UserService {
-  static update = async ({ userId, name, birthday, avaURL }) => {
-    
-    const filter = { email: email };
+  static update = async ({ userId, name, birthday, avatarURL }) => {
+    console.log(userId, name, birthday, avatarURL )
+    const filter = { _id: userId };
     
     const options = { upsert: true };
 
     const updateUser = {
         $set: {
-            userId: userId,
-            name: name,
-            birthday: birthday,
-            avatar:avaURL
+          name: name,
+          birthday: birthday,
+          avatar:avatarURL
         },
     };
     const result = await User.updateOne(filter, updateUser, options)
@@ -32,4 +31,4 @@ class UserService {
   }
 }
 
-module.exports = AuthService
+module.exports = UserService

@@ -77,8 +77,9 @@ const ProfileDetails = () => {
     hideDatePicker();
   };
 
-  const saveToDB = async (firstName,lastName, birthdate, avaURL) => {
-    if (firstName && lastName && birthdate && avaURL){
+  const saveToDB = async (_firstName,_lastName, _birthday, _avatarURL, _userId) => {
+    console.log(_firstName,_lastName, _birthday, _avatarURL, _userId)
+    if (_firstName && _lastName && _birthday && _avatarURL){
       const url = `${appConfig.API_URL}/user/update`
       console.log("URL: ", url)
       await fetch(url, {
@@ -87,10 +88,10 @@ const ProfileDetails = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: userId,
-          name: firstName+' '+lastName, // Matching your server's expected fields
-          birthdate: birthdate,
-          avaURL: avaURL,
+          userId: _userId,
+          name: _firstName+' '+_lastName, // Matching your server's expected fields
+          birthday: _birthday,
+          avatarURL: _avatarURL,
         }),
       }).then(res=>{
         res.json()
@@ -105,7 +106,7 @@ const ProfileDetails = () => {
 
   const handleConfirm = async ()=>{
     await cloudinaryUpload(selectedImage);
-    await saveToDB(firstName, lastName, date, avatarURL);
+    await saveToDB(firstName, lastName, date, avatarURL, userId);
     
   }
 
@@ -121,16 +122,16 @@ const ProfileDetails = () => {
     });
     formData.append('upload_preset', CLOUDINARY_PRESET);
 
-    fetch(url, {
+    await fetch(url, {
       method: 'POST',
       body: formData,
     })
     .then((response) => {
-      return response.text();
+      return response.json();
     })
     .then((data) => {
       console.log(data)
-      setAvatarURL(data.url)
+      setAvatarURL(data["url"])
     });
     
   }
@@ -143,7 +144,7 @@ const ProfileDetails = () => {
       console.log(e)
     }
   };
-  storeData('U0001');
+  storeData('67fb1dc83f35cac28bea0ea6');
   //////////////////////////////////////////////////////////////////
 
   getUserId();
