@@ -1,10 +1,73 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Colors } from "../../constants/Colors";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
+import { jwtDecode } from "jwt-decode";
+import appConfig from "../../configs/config";
+import { useEffect } from "react";
 const GenderSelectionScreen = () => {
-  const [selectedGender, setSelectedGender] = useState("Man");
+  const [selectedGender, setSelectedGender] = useState("male");
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      try {
+        const token = await AsyncStorage.getItem("authToken");
+        if (token) {
+          const decoded = jwtDecode(token);
+          setUserId(decoded.userId);
+        } else {
+          console.log("No token found, redirecting to login");
+          router.replace("/(auth)/login");
+        }
+      } catch (error) {
+        console.error("Error fetching user ID:", error);
+      }
+    };
+    fetchUserId();
+    // Set default selected hobbies if needed
+  }, []);
+
+  const updateGender = async () => {
+    try {
+      if (!userId) {
+        Alert.alert("Error", "User not found. Please log in again.");
+        return;
+      }
+      console.log("GENDER:", selectedGender);
+      const url = `${appConfig.API_URL}/auth/update-gender`;
+      console.log("URL:", url);
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+          gender: selectedGender,
+        }),
+      });
+
+      const data = await response.json(); // Parse JSON từ phản hồi
+
+      if (response.ok) {
+        // Thành công
+        console.log("Gender updated successfully:", data);
+        Alert.alert("Success", "Gender updated successfully!");
+        router.push("/(auth)/select-hobbies"); // Chuyển hướng đến màn hình tiếp theo
+      } else {
+        // Thất bại
+        console.error("Failed to update gender:", data);
+        Alert.alert("Error", data.message || "Failed to update gender.");
+      }
+    } catch (error) {
+      console.error("Error updating gender:", error);
+      Alert.alert("Error", "An error occurred. Please try again.");
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -29,19 +92,19 @@ const GenderSelectionScreen = () => {
           <TouchableOpacity
             style={[
               styles.option,
-              selectedGender === "Woman" && styles.optionSelected,
+              selectedGender === "female" && styles.optionSelected,
             ]}
-            onPress={() => setSelectedGender("Woman")}
+            onPress={() => setSelectedGender("female")}
           >
             <Text
               style={[
                 styles.optionText,
-                selectedGender === "Woman" && styles.optionTextSelected,
+                selectedGender === "female" && styles.optionTextSelected,
               ]}
             >
               Woman
             </Text>
-            {selectedGender === "Woman" && (
+            {selectedGender === "female" && (
               <Text style={styles.checkmark}>✓</Text>
             )}
           </TouchableOpacity>
@@ -49,19 +112,19 @@ const GenderSelectionScreen = () => {
           <TouchableOpacity
             style={[
               styles.option,
-              selectedGender === "Man" && styles.optionSelected,
+              selectedGender === "male" && styles.optionSelected,
             ]}
-            onPress={() => setSelectedGender("Man")}
+            onPress={() => setSelectedGender("male")}
           >
             <Text
               style={[
                 styles.optionText,
-                selectedGender === "Man" && styles.optionTextSelected,
+                selectedGender === "male" && styles.optionTextSelected,
               ]}
             >
               Man
             </Text>
-            {selectedGender === "Man" && (
+            {selectedGender === "male" && (
               <Text style={styles.checkmark}>✓</Text>
             )}
           </TouchableOpacity>
@@ -69,10 +132,10 @@ const GenderSelectionScreen = () => {
           <TouchableOpacity
             style={[
               styles.option,
-              selectedGender === "Other" && styles.optionSelected,
+              selectedGender === "other" && styles.optionSelected,
             ]}
             onPress={() => {
-              setSelectedGender("Other");
+              setSelectedGender("other");
             }}
           >
             <Text style={styles.optionText}>Choose another</Text>
@@ -82,14 +145,14 @@ const GenderSelectionScreen = () => {
               size={20}
               color={Colors.primaryColor}
             />
-            {selectedGender === "Other" && (
+            {selectedGender === "other" && (
               <Text style={styles.checkmark}>✓</Text>
             )}
           </TouchableOpacity>
         </View>
       </View>
 
-      <TouchableOpacity style={styles.continueButton}>
+      <TouchableOpacity style={styles.continueButton} onPress={updateGender}>
         <Text style={styles.continueText}>Continue</Text>
       </TouchableOpacity>
     </View>
