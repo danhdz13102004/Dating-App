@@ -1,14 +1,15 @@
-'use strict'
+"use strict";
 
-const express = require('express')
-const authController = require('../controllers/auth.controller')
-const asyncHandler = require('../middlewares/asynHandler.middleware')
-const router = express.Router()
+const express = require("express");
+const authController = require("../controllers/auth.controller");
+const asyncHandler = require("../middlewares/asynHandler.middleware");
+const router = express.Router();
 
-router.post('/register', asyncHandler(authController.register))
+router.post("/register", asyncHandler(authController.register));
 
-router.post('/login', asyncHandler(authController.login))
+router.post("/login", asyncHandler(authController.login));
 
-router.post('/update-hobbies', asyncHandler(authController.updateUserHobbies));
+router.post("/update-hobbies", asyncHandler(authController.updateUserHobbies));
 
-module.exports = router
+router.post("/update-gender", asyncHandler(authController.updateUserGender));
+module.exports = router;
