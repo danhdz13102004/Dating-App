@@ -35,6 +35,26 @@ class UserController {
     }
   };
 
+  // Function to get messages by id_conversation
+  getMessages = async (req, res, next) => {
+    try {
+      console.log(`[P]::Get_Messages::Request::`, req.params);
+      const { conversationId } = req.params;
+
+      console.log(`[P]::Get_Messages::ConversationId::`, conversationId);
+
+      // Fetch messages for the conversation
+      const messages = await UserService.getMessages(conversationId);
+
+      console.log(`[P]::Get_Messages::Result::`, messages);
+
+      return res.status(200).json({ status: "success", data: messages });
+    } catch (error) {
+      console.error(`[P]::Get_Messages::Error::`, error);
+      return res.status(500).json({ status: "error", message: error.message });
+    }
+  };
+
 }
 
 module.exports = new UserController();

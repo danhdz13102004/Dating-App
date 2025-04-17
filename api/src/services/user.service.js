@@ -3,6 +3,7 @@
 const User = require("../models/User")
 const HttpStatus = require("../core/httpStatus")
 const { ConflictRequestError } = require("../core/error.response")
+const Message = require("../models/Message")
 
 class UserService {
   static update = async ({ userId, name, birthday, avatarURL }) => {
@@ -27,6 +28,20 @@ class UserService {
       data: {
         userId: result._id,
       }
+    }
+  }
+
+  static getMessages = async (conversationId) => {
+    try {
+      const messages = await Message.find({conversation: conversationId })
+        .populate('sender', 'name avatar')
+        .sort({ createdAt: -1 })
+        .exec()
+
+      return messages
+    } catch (error) {
+      console.error('Error fetching messages:', error)
+      throw new ConflictRequestError('Failed to fetch messages')
     }
   }
 }

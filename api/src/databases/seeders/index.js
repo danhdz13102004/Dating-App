@@ -168,13 +168,13 @@ async function seedMessages(users, conversations) {
       {
         conversation: conversations[0]._id,
         sender: users[0]._id,
-        content: 'Chào bạn, mình thấy bạn có vẻ thú vị.',
+        content: 'Anh yêu em',
         status: 'read'
       },
       {
         conversation: conversations[0]._id,
         sender: users[1]._id,
-        content: 'Cảm ơn bạn. Mình cũng thấy bạn có nhiều sở thích hay.',
+        content: 'Yêu anh nhiều',
         status: 'read'
       },
       {
@@ -184,10 +184,28 @@ async function seedMessages(users, conversations) {
         status: 'delivered'
       },
       {
-        conversation: conversations[1]._id,
+        conversation: conversations[0]._id,
+        sender: users[0]._id,
+        content: 'Anh yêu em',
+        status: 'read'
+      },
+      {
+        conversation: conversations[0]._id,
         sender: users[1]._id,
-        content: 'Chào bạn, rất vui được làm quen.',
-        status: 'sent'
+        content: 'Yêu anh nhiều vl',
+        status: 'read'
+      },
+      {
+        conversation: conversations[0]._id,
+        sender: users[0]._id,
+        content: 'Làm chiều không?',
+        status: 'read'
+      },
+      {
+        conversation: conversations[0]._id,
+        sender: users[1]._id,
+        content: 'Không làm chiều thì làm tối',
+        status: 'read'
       }
     ]
     
