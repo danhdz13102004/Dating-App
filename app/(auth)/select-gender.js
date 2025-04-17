@@ -56,7 +56,6 @@ const GenderSelectionScreen = () => {
       if (response.ok) {
         // Thành công
         console.log("Gender updated successfully:", data);
-        Alert.alert("Success", "Gender updated successfully!");
         router.push("/(auth)/select-hobbies"); // Chuyển hướng đến màn hình tiếp theo
       } else {
         // Thất bại

@@ -1,44 +1,44 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
   SafeAreaView,
-  Platform 
-} from 'react-native';
-import { Image } from 'expo-image';
-import Icon from 'react-native-vector-icons/Feather'; 
+  Platform,
+  Alert,
+} from "react-native";
+import { Image } from "expo-image";
+import Icon from "react-native-vector-icons/Feather";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
-import * as ImagePicker from 'expo-image-picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import appConfig from '../../configs/config'
-import { jwtDecode } from 'jwt-decode';
+import * as ImagePicker from "expo-image-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import appConfig from "../../configs/config";
+import { jwtDecode } from "jwt-decode";
+import { router } from "expo-router";
 
 const ProfileDetails = () => {
-  const [firstName, setFirstName] = useState('David');
-  const [lastName, setLastName] = useState('Peterson');
+  const [firstName, setFirstName] = useState("David");
+  const [lastName, setLastName] = useState("Peterson");
   const [date, setDate] = useState(null);
   const [open, setOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
-  const [userId, setUserId] = useState(null)
-  const [avatarURL, setAvatarURL] = useState(null)
+  const [userId, setUserId] = useState(null);
+  const [avatarURL, setAvatarURL] = useState(null);
   const placeholder = require("@/assets/images/placeholder_avatar.png");
-
 
   useEffect(() => {
     const fetchUserId = async () => {
       try {
-        const token = await AsyncStorage.getItem('authToken');
+        const token = await AsyncStorage.getItem("authToken");
         if (token) {
           const decoded = jwtDecode(token);
           setUserId(decoded.userId);
           console.log("User ID: ", decoded.userId);
-        }
-        else {
-          console.log('No token found, redirecting to login');
-          router.replace('/(auth)/login');
+        } else {
+          console.log("No token found, redirecting to login");
+          router.replace("/(auth)/login");
         }
       } catch (error) {
         console.error("Error fetching user ID:", error);
@@ -46,12 +46,11 @@ const ProfileDetails = () => {
     };
 
     fetchUserId();
-  }), [];
-
+  }, []);
 
   const pickImageAsync = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ["images"],
       allowsEditing: true,
       quality: 1,
     });
@@ -59,16 +58,16 @@ const ProfileDetails = () => {
     if (!result.canceled) {
       setSelectedImage(result.assets[0].uri);
     } else {
-      alert('You did not select any image.');
+      alert("You did not select any image.");
     }
   };
 
   const formatDate = (date) => {
-    if (!date) return '';
-    return date.toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric', 
-      year: 'numeric'
+    if (!date) return "";
+    return date.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
@@ -81,70 +80,74 @@ const ProfileDetails = () => {
   };
 
   const handleSelect = (date) => {
-    setDate(date)
+    setDate(date);
     hideDatePicker();
   };
 
-  const saveToDB = async (_firstName,_lastName, _birthday, _avatarURL, _userId) => {
-    console.log(_firstName,_lastName, _birthday, _avatarURL, _userId)
-    if (_firstName && _lastName && _birthday && _avatarURL){
-      const url = `${appConfig.API_URL}/user/update`
-      console.log("URL: ", url)
-      await fetch(url, {
-        method: 'POST',
+  const saveToDB = async (
+    _firstName,
+    _lastName,
+    _birthday,
+    _avatarURL,
+    _userId
+  ) => {
+    console.log(_firstName, _lastName, _birthday, _avatarURL, _userId);
+    if (_firstName && _lastName && _birthday && _avatarURL) {
+      const url = `${appConfig.API_URL}/user/update`;
+      console.log("URL: ", url);
+      const response = await fetch(url, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           userId: _userId,
-          name: _firstName+' '+_lastName, // Matching your server's expected fields
+          name: _firstName + " " + _lastName, // Matching your server's expected fields
           birthday: _birthday,
           avatarURL: _avatarURL,
         }),
-      }).then(res=>{
-        res.json()
-      }).then(data=>{
-        console.log(data)
-      })
-    }
-    else{
-      alert('Missing important field')
-    }
-  }
+      });
 
-  const handleConfirm = async ()=>{
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Profile updated successfully:", data);
+        router.replace("/(auth)/select-gender");
+      }
+    } else {
+      alert("Missing important field");
+    }
+  };
+
+  const handleConfirm = async () => {
     console.log("Confirm Button Pressed");
     await cloudinaryUpload(selectedImage);
-
-    
-  }
+  };
 
   const cloudinaryUpload = async (imagePath) => {
     const url = process.env.EXPO_PUBLIC_CLOUDINARY_ENDPOINT;
     const formData = new FormData();
-    fileName = imagePath.split('/').pop()
+    const fileName = imagePath.split("/").pop();
     console.log("File Name: ", fileName);
-    formData.append('file', {
+    formData.append("file", {
       uri: imagePath,
       name: fileName,
-      type: 'image/jpg'
+      type: "image/jpg",
     });
-    formData.append('upload_preset', process.env.EXPO_PUBLIC_CLOUDINARY_PRESET);
+    formData.append("upload_preset", process.env.EXPO_PUBLIC_CLOUDINARY_PRESET);
 
     await fetch(url, {
-      method: 'POST',
+      method: "POST",
       body: formData,
     })
-    .then((response) => {
-      return response.json();
-    })
-    .then((data) => {
-      console.log(data)
-      setAvatarURL(data["url"])
-      saveToDB(firstName, lastName, date, data["url"], userId);
-    });
-    
-  }
+      .then((response) => {
+        return response.json();
+      })
+      .then((data) => {
+        console.log(data);
+        setAvatarURL(data["url"]);
+        saveToDB(firstName, lastName, date, data["url"], userId);
+      });
+  };
 
   ////////// for test ///////////////////////////////////////////////
   // const storeData = async (value) => {
@@ -157,29 +160,32 @@ const ProfileDetails = () => {
   // storeData('67fb1dc83f35cac28bea0ea6');
   //////////////////////////////////////////////////////////////////
 
-
   return (
     <SafeAreaView style={styles.container}>
-      
       <View style={styles.titleContainer}>
         <Text style={styles.title}>Profile details</Text>
       </View>
-      
+
       <View style={styles.profileImageContainer}>
         <View style={styles.imageWrapper}>
-        <Image
-          style={styles.profileImage}
-          source={selectedImage}
-          placeholder={placeholder}
-          contentFit="cover"
-          transition={1000}
-        />
+          <Image
+            style={styles.profileImage}
+            source={selectedImage}
+            placeholder={placeholder}
+            contentFit="cover"
+            transition={1000}
+          />
         </View>
         <TouchableOpacity style={styles.cameraButton}>
-          <Icon name="camera" size={18} color="white" onPress={pickImageAsync}/>
+          <Icon
+            name="camera"
+            size={18}
+            color="white"
+            onPress={pickImageAsync}
+          />
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.form}>
         {/* First Name */}
         <View style={styles.inputContainer}>
@@ -190,7 +196,7 @@ const ProfileDetails = () => {
             onChangeText={setFirstName}
           />
         </View>
-        
+
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Last name</Text>
           <TextInput
@@ -199,18 +205,18 @@ const ProfileDetails = () => {
             onChangeText={setLastName}
           />
         </View>
-        
+
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Birthday</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={date ? styles.dateInput : styles.birthdayButton}
             onPress={showDatePicker}
           >
-            <Icon 
-              name="calendar" 
-              size={20} 
-              color="#E57373" 
-              style={styles.calendarIcon} 
+            <Icon
+              name="calendar"
+              size={20}
+              color="#E57373"
+              style={styles.calendarIcon}
             />
             <Text style={date ? styles.dateText : styles.birthdayText}>
               {date ? formatDate(date) : "Choose birthday date"}
@@ -224,8 +230,8 @@ const ProfileDetails = () => {
           onConfirm={handleSelect}
           onCancel={hideDatePicker}
         />
-    
-        <TouchableOpacity style={styles.confirmButton}  onPress={handleConfirm}>
+
+        <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
           <Text style={styles.confirmText}>Confirm</Text>
         </TouchableOpacity>
       </View>
@@ -236,108 +242,108 @@ const ProfileDetails = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     paddingHorizontal: 24,
-    paddingTop: 20
+    paddingTop: 20,
   },
   titleContainer: {
     marginTop: 60,
-    marginBottom: 60
+    marginBottom: 60,
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center'
+    fontWeight: "bold",
+    textAlign: "center",
   },
   profileImageContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 60,
-    position: 'relative'
+    position: "relative",
   },
   imageWrapper: {
     width: 110,
     height: 110,
     borderRadius: 25,
-    backgroundColor: '#EEEEEE',
-    overflow: 'hidden'
+    backgroundColor: "#EEEEEE",
+    overflow: "hidden",
   },
   profileImage: {
-    width: '100%',
-    height: '100%'
+    width: "100%",
+    height: "100%",
   },
   cameraButton: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
-    right: '35%',
-    backgroundColor: '#E57373',
+    right: "35%",
+    backgroundColor: "#E57373",
     width: 36,
     height: 36,
     borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center'
+    justifyContent: "center",
+    alignItems: "center",
   },
   form: {
-    width: '100%'
+    width: "100%",
   },
   inputContainer: {
-    marginBottom: 24
+    marginBottom: 24,
   },
   label: {
-    color: '#9E9E9E',
+    color: "#9E9E9E",
     fontSize: 14,
     marginBottom: 8,
-    fontWeight: '400'
+    fontWeight: "400",
   },
   input: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: "#E0E0E0",
     borderRadius: 16,
     padding: 16,
     fontSize: 16,
-    fontWeight: '500',
-    color: '#212121'
+    fontWeight: "500",
+    color: "#212121",
   },
   birthdayButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFEBEE',
-    borderRadius: 16,
-    padding: 16
-  },
-  dateInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 16,
-    padding: 16
-  },
-  calendarIcon: {
-    marginRight: 12
-  },
-  birthdayText: {
-    color: '#E57373',
-    fontSize: 16
-  },
-  dateText: {
-    color: '#212121',
-    fontSize: 16,
-    fontWeight: '500'
-  },
-  confirmButton: {
-    backgroundColor: '#E57373',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFEBEE",
     borderRadius: 16,
     padding: 16,
-    alignItems: 'center',
-    marginTop: 96
+  },
+  dateInput: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 16,
+    padding: 16,
+  },
+  calendarIcon: {
+    marginRight: 12,
+  },
+  birthdayText: {
+    color: "#E57373",
+    fontSize: 16,
+  },
+  dateText: {
+    color: "#212121",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  confirmButton: {
+    backgroundColor: "#E57373",
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "center",
+    marginTop: 96,
   },
   confirmText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: '500'
-  }
+    fontWeight: "500",
+  },
 });
 
 export default ProfileDetails;
