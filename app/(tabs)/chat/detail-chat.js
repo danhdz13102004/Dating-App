@@ -11,17 +11,117 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
-  Dimensions,
 } from "react-native";
 import { MaterialIcons, Feather } from "@expo/vector-icons";
 import { Colors } from "../../../constants/Colors";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { jwtDecode } from "jwt-decode";
+import { db } from "../../../firebaseConfig";
+import {
+  onSnapshot,
+  query,
+  collection,
+  orderBy,
+  serverTimestamp,
+  addDoc,
+  limit,
+} from "firebase/firestore";
+import appConfig from "../../../configs/config";
 
 const DetailChat = () => {
   const scrollViewRef = useRef(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [content, setContent] = useState("");
+  const [userId, setUserId] = useState(null);
+  const idCoversation = "6800f981eaf98c411366ea79";
+  const id_partner = "6800f981eaf98c411366ea79"; // ID của người dùng khác
+  const [messages, setMessages] = useState([]);
 
-  // Set up keyboard listeners to track keyboard height and visibility
+  // Lấy messages từ API
+  useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        const response = await fetch(
+          `${appConfig.API_URL}/user/messages/${idCoversation}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        const data = await response.json();
+        console.log("📥 Messages fetched from API:", data);
+        setMessages(data.data || []);
+      } catch (error) {
+        console.error("❌ Error fetching messages:", error);
+      }
+    };
+    fetchMessages();
+  }, []);
+
+  // Lắng nghe Firestore thay đổi (nếu có)
+  useEffect(() => {
+    let unsubscribe;
+
+    const fetchUserIdAndSubscribe = async () => {
+      try {
+        const token = await AsyncStorage.getItem("authToken");
+        if (token) {
+          const decoded = jwtDecode(token);
+          const uid = decoded.userId;
+          setUserId(uid);
+    
+          const q = query(
+            collection(db, `messages/${uid}/messages`),
+            orderBy("createdAt", "desc"),
+            limit(1) // 🔥 Chỉ lấy tin nhắn mới nhất
+          );
+    
+          unsubscribe = onSnapshot(q, (querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+              console.log("🔥 New message:", doc.data());
+
+              const firestoreData = doc.data();
+              console.log("🔥 Firestore data:", firestoreData);
+
+              // 🔁 Chuyển đổi dữ liệu sang định dạng giống API
+              const newMsg = {
+                _id: doc.id,
+                content: firestoreData.content || "",
+                conversation: firestoreData.conversation || "", // nếu có
+                createdAt: firestoreData.createdAt?.toDate().toISOString() || new Date().toISOString(),
+                updatedAt: firestoreData.updatedAt?.toDate().toISOString() || firestoreData.createdAt?.toDate().toISOString() || new Date().toISOString(),
+                status: firestoreData.status || "sent",
+                sender: {
+                  _id: firestoreData.senderId
+                }, // nếu lưu trong Firestore
+                __v: 0
+              };
+  
+              setMessages(prev => {
+                return [...prev, newMsg];
+              });
+  
+              console.log("🔥 New formatted message:", newMsg);
+
+            });
+          });
+        }
+      } catch (error) {
+        console.error("❌ Error in subscription:", error);
+      }
+    };
+
+    fetchUserIdAndSubscribe();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+  // Lắng nghe bàn phím
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
@@ -38,14 +138,34 @@ const DetailChat = () => {
       }
     );
 
-    // Clean up listeners on component unmount
     return () => {
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };
   }, []);
 
-  // Function to dismiss keyboard when tapping outside the input
+  const sendMessage = async ({ senderId = "abc" }) => {
+    try {
+      const receiverId = id_partner; // ID của người dùng khác
+      const messagesSubcollectionRef = collection(
+        db,
+        `messages/${receiverId}/messages`
+      );
+
+      const newMessage = {
+        senderId,
+        content,
+        createdAt: serverTimestamp(),
+      };
+
+      await addDoc(messagesSubcollectionRef, newMessage);
+      setContent("");
+      console.log("✅ Tin nhắn đã được gửi!");
+    } catch (error) {
+      console.error("❌ Gửi tin nhắn thất bại:", error);
+    }
+  };
+
   const dismissKeyboard = () => {
     Keyboard.dismiss();
   };
@@ -88,19 +208,17 @@ const DetailChat = () => {
         </View>
       </View>
 
-      {/* Main content area with KeyboardAvoidingView */}
+      {/* Nội dung chat */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "padding"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
-        {/* Touchable area to dismiss keyboard */}
         <TouchableOpacity
           activeOpacity={1}
           style={{ flex: 1 }}
           onPress={dismissKeyboard}
         >
-          {/* Chat content */}
           <ScrollView
             ref={scrollViewRef}
             style={styles.messageScroll}
@@ -110,71 +228,55 @@ const DetailChat = () => {
               scrollViewRef.current?.scrollToEnd({ animated: true })
             }
           >
-            {/* Date label */}
             <View style={styles.dateContainer}>
               <View style={styles.dateLine} />
               <Text style={styles.dateText}>Today</Text>
               <View style={styles.dateLine} />
             </View>
 
-            {/* Message 1 - received */}
-            <View>
-              <View style={styles.receivedMessageContainer}>
-                <Text style={styles.messageText}>
-                  Hi Jake, how are you? I saw on the app that we've crossed
-                  paths several times this week 😄
-                </Text>
-              </View>
-              <Text style={styles.timeTextLeft}>2:55 PM</Text>
-            </View>
+            {/* Hiển thị message từ API */}
+            {messages.map((msg, index) => {
+              console.log(msg.sender._id, userId);
+              const isSent = msg.sender._id === userId;
+              console.log("isSent", isSent);
+              const time = msg.createdAt
+                ? new Date(msg.createdAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "";
 
-            {/* Message 2 - sent */}
-            <View>
-              <View style={styles.sentMessageContainer}>
-                <Text style={styles.messageText}>
-                  Haha truly! Nice to meet you Grace! What about a cup of coffee
-                  today evening? ☕
-                </Text>
-              </View>
-              <View style={styles.timeContainerRight}>
-                <Text style={styles.timeTextRight}>3:02 PM</Text>
-                <MaterialIcons
-                  name="done-all"
-                  size={16}
-                  color={Colors.primaryColor}
-                />
-              </View>
-            </View>
-
-            {/* Message 3 - received */}
-            <View>
-              <View style={styles.receivedMessageContainer}>
-                <Text style={styles.messageText}>Sure, let's do it!</Text>
-              </View>
-              <Text style={styles.timeTextLeft}>2:55 PM</Text>
-            </View>
-
-            {/* Message 4 - sent */}
-            <View>
-              <View style={styles.sentMessageContainer}>
-                <Text style={styles.messageText}>
-                  Great I will write later the exact time and place. See you
-                  soon!
-                </Text>
-              </View>
-              <View style={styles.timeContainerRight}>
-                <Text style={styles.timeTextRight}>3:15 PM</Text>
-                <MaterialIcons
-                  name="done-all"
-                  size={16}
-                  color={Colors.primaryColor}
-                />
-              </View>
-            </View>
+              return (
+                <View key={msg.id || index}>
+                  {isSent ? (
+                    <>
+                      <View style={styles.sentMessageContainer}>
+                        <Text style={styles.messageText}>{msg.content}</Text>
+                      </View>
+                      <View style={styles.timeContainerRight}>
+                        <Text style={styles.timeTextRight}>{time}</Text>
+                        <MaterialIcons
+                          name="done-all"
+                          size={16}
+                          color={Colors.primaryColor}
+                        />
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <View style={styles.receivedMessageContainer}>
+                        <Text style={styles.messageText}>{msg.content}</Text>
+                      </View>
+                      <Text style={styles.timeTextLeft}>{time}</Text>
+                    </>
+                  )}
+                </View>
+              );
+            })}
           </ScrollView>
         </TouchableOpacity>
 
-        {/* Footer input */}
+        {/* Nhập message */}
         <View style={styles.footer}>
           <View style={styles.footerContent}>
             <View style={styles.inputContainer}>
@@ -182,9 +284,14 @@ const DetailChat = () => {
                 style={styles.input}
                 placeholder="Your message"
                 placeholderTextColor="#999"
+                value={content}
+                onChangeText={(text) => setContent(text)}
               />
             </View>
-            <TouchableOpacity style={styles.buttonSend}>
+            <TouchableOpacity
+              onPress={() => sendMessage({ senderId: userId })}
+              style={styles.buttonSend}
+            >
               <Feather name="send" size={24} color={Colors.primaryColor} />
             </TouchableOpacity>
           </View>
@@ -195,24 +302,15 @@ const DetailChat = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  header: {
-    marginTop: 15,
-    marginBottom: 15,
-    padding: 10,
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
+  header: { marginTop: 15, marginBottom: 15, padding: 10 },
   headerContent: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 15,
     justifyContent: "space-between",
   },
-  backButton: {
-    padding: 5,
-  },
+  backButton: { padding: 5 },
   profileContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -226,17 +324,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.primaryColor,
   },
-  userInfo: {
-    marginLeft: 10,
-  },
-  username: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  onlineStatus: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+  userInfo: { marginLeft: 10 },
+  username: { fontSize: 16, fontWeight: "bold" },
+  onlineStatus: { flexDirection: "row", alignItems: "center" },
   onlineDot: {
     width: 8,
     height: 8,
@@ -244,36 +334,17 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryColor,
     marginRight: 5,
   },
-  statusText: {
-    fontSize: 12,
-    color: "#000000",
-    fontWeight: "400",
-  },
-  moreButton: {
-    padding: 5,
-  },
-  messageScroll: {
-    flex: 1,
-  },
-  messageContentContainer: {
-    padding: 20,
-    paddingBottom: 70,
-  },
+  statusText: { fontSize: 12, color: "#000", fontWeight: "400" },
+  moreButton: { padding: 5 },
+  messageScroll: { flex: 1 },
+  messageContentContainer: { padding: 20, paddingBottom: 70 },
   dateContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 15,
   },
-  dateLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#E0E0E0",
-  },
-  dateText: {
-    marginHorizontal: 10,
-    fontSize: 12,
-    color: "#666",
-  },
+  dateLine: { flex: 1, height: 1, backgroundColor: "#E0E0E0" },
+  dateText: { marginHorizontal: 10, fontSize: 12, color: "#666" },
   receivedMessageContainer: {
     alignSelf: "flex-start",
     backgroundColor: "#FFF0F0",
@@ -294,13 +365,10 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 5,
     marginHorizontal: 15,
   },
-  messageText: {
-    fontSize: 16,
-    color: "#000",
-  },
+  messageText: { fontSize: 16, color: "#000" },
   timeTextLeft: {
     fontSize: 12,
-    color: "#000000",
+    color: "#000",
     marginLeft: 5,
     paddingLeft: 20,
     marginBottom: 15,
@@ -311,11 +379,7 @@ const styles = StyleSheet.create({
     marginRight: 18,
     marginBottom: 15,
   },
-  timeTextRight: {
-    fontSize: 12,
-    color: "#000000",
-    marginRight: 5,
-  },
+  timeTextRight: { fontSize: 12, color: "#000", marginRight: 5 },
   footer: {
     padding: 10,
     backgroundColor: "#fff",
@@ -337,11 +401,7 @@ const styles = StyleSheet.create({
     borderColor: "#E0E0E0",
     height: 48,
   },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    height: 48,
-  },
+  input: { flex: 1, fontSize: 16, height: 48 },
   buttonSend: {
     width: 48,
     height: 48,
