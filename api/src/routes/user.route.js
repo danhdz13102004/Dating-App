@@ -8,4 +8,6 @@ const router = express.Router()
 router.post('/update', asyncHandler(userController.update))
 
 router.get("/notifications/:userId",asyncHandler(userController.getNotifications));
+
+router.get("/messages/:conversationId",asyncHandler(userController.getMessages));
 module.exports = router
