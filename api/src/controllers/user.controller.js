@@ -32,8 +32,8 @@ class UserController {
           $or: [{ sender: userId }, { receiver: userId }],
           status: 'active' // Add condition for status to be 'active'
         })
-        .populate('sender', 'name avatarURL') // Populate sender's name and avatar
-        .populate('receiver', 'name avatarURL')
+        .populate('sender', 'name avatar') // Populate sender's name and avatar
+        .populate('receiver', 'name avatar')
         .sort({ updatedAt: -1 }) // Populate receiver's name and avatar
         .exec();
 
@@ -75,14 +75,14 @@ class UserController {
     try {
       console.log(`[P]::Get_Messages::Request::`, req.params);
       const { conversationId } = req.params;
-
+  
       console.log(`[P]::Get_Messages::ConversationId::`, conversationId);
-
-      // Fetch messages for the conversation
+  
       const messages = await UserService.getMessages(conversationId);
-
+      // messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  
       console.log(`[P]::Get_Messages::Result::`, messages);
-
+  
       return res.status(200).json({ status: "success", data: messages });
     } catch (error) {
       console.error(`[P]::Get_Messages::Error::`, error);

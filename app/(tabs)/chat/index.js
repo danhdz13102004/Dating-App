@@ -79,12 +79,15 @@ const MessagesScreen = () => {
         conversations.forEach(conversation => {
             // Perform some operation with each conversation
             let _partner = conversation.receiver._id == uid? conversation.sender: conversation.receiver 
-            console.log("CHeck partner :",_partner, uid, conversation);
+            // console.log("CHeck partner :",_partner, uid, conversation);
+            // console.log("sender :", conversation.sender);
+            // console.log("receiver :", conversation.receiver);
+            console.log("avatar :", _partner.avatar);
             let message = {
             id: conversation._id,
             name: _partner.name,
             partnerId : _partner._id,
-            avatar: _partner.avatarURL,
+            avatar: _partner.avatar,
             message: conversation.last_message,
             time: time_format(conversation.updatedAt),
             unread: 0
@@ -103,7 +106,7 @@ const MessagesScreen = () => {
             let activity = {
             id: _partner._id,
             name: _partner.name,
-            avatar: _partner.avatarURL,
+            avatar: _partner.avatar,
             };
             _activities.push(activity);
         });
@@ -189,20 +192,20 @@ const MessagesScreen = () => {
     const renderActivity = ({ item }) => (
         <TouchableOpacity style={styles.activityItem}>
             <View style={styles.activityAvatar}>
-                <Image source={item.avatar} style={styles.activityImage} />
+                <Image source={{ uri: item.avatar }} style={styles.activityImage} />
             </View>
             <Text style={styles.activityName}>{item.name}</Text>
         </TouchableOpacity>
     );
 
-    const navigate = (converId, receiverId)=>{
+    const navigate = (converId, receiverId, name, avatar)=>{
         console.log(converId, receiverId)
-        router.navigate(`/(tabs)/chat/detail-chat?idCoversation=${converId}&id_partner=${receiverId}`);
+        router.navigate(`/(tabs)/chat/detail-chat?idCoversation=${converId}&id_partner=${receiverId}&name=${name}&avatar=${avatar}`);
     }
     // Message item renderer
     const renderMessage = ({ item }) => (
-        <TouchableOpacity style={styles.messageItem} onPress={()=>navigate(item.id, item.partnerId)}>
-            <Image source={item.avatar} style={styles.messageAvatar} />
+        <TouchableOpacity style={styles.messageItem} onPress={()=>navigate(item.id, item.partnerId, item.name, item.avatar)}>
+            <Image source={{ uri: item.avatar }} style={styles.messageAvatar} />
             <View style={styles.messageContent}>
                 <View style={styles.messageHeader}>
                     <Text style={styles.messageName}>{item.name}</Text>
