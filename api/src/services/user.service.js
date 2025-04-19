@@ -30,6 +30,7 @@ class UserService {
     };
   };
 
+  
   static getUserById = async (userId) => {
     const user = await User.findById(userId);
     if (!user) {
