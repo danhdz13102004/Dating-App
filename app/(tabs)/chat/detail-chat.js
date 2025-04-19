@@ -74,8 +74,8 @@ const  DetailChat = () => {
         const token = await AsyncStorage.getItem("authToken");
         if (token) {
           const decoded = jwtDecode(token);
-          // const uid = decoded.userId;
-          const uid = "67fb1dc83f35cac28bea0ea7";
+          const uid = decoded.userId;
+          // const uid = "67fb1dc83f35cac28bea0ea7";
           setUserId(uid);
     
           const q = query(
