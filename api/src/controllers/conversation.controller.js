@@ -22,6 +22,12 @@ class ConversationController {
         });
         res.status(200).json(result);
     }
+
+    static getMatchRequests = async (req, res) => {
+        const  userId  = req.params.id; // userId từ middleware xác thực (authentication)
+        const result = await ConversationService.getMatchRequests({ userId });
+        res.status(200).json(result);
+    };
 }
 
 module.exports = ConversationController;

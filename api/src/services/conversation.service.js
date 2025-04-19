@@ -119,6 +119,27 @@ class ConversationService {
             data: deletedConversation,
         };
     };
+
+    static getMatchRequests = async ({ userId }) => {
+        const matchRequests = await Conversation.find({
+            receiver: userId, // Người nhận là user hiện tại
+            status: "pending", // Chỉ lấy các cuộc hội thoại có trạng thái "pending"
+        })
+            .populate("sender", "name email") // Hiển thị thông tin của người gửi
+            .populate("receiver", "name email") // Hiển thị thông tin của người nhận
+            .sort({ updatedAt: -1 }); // Sắp xếp theo thời gian cập nhật mới nhất
+
+        if (!matchRequests || matchRequests.length === 0) {
+            throw new NotFoundError("Không có lời mời match nào");
+        }
+
+        return {
+            status: "success",
+            message: "Lấy danh sách lời mời match thành công",
+            data: matchRequests,
+        };
+    };
+    
 }
 
 module.exports = ConversationService;
