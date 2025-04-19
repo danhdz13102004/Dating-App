@@ -37,7 +37,7 @@ const  DetailChat = () => {
   const [userId, setUserId] = useState(null);
   const [messages, setMessages] = useState([]);
   const router = useRouter();
-  const { idCoversation, id_partner } = useLocalSearchParams();
+  const { idCoversation, id_partner, name, avatar } = useLocalSearchParams();
   
   
 
@@ -56,14 +56,14 @@ const  DetailChat = () => {
           }
         );
         const data = await response.json();
-        console.log("📥 Messages fetched from API:", data);
+        // console.log("📥 Messages fetched from API:", data);
         setMessages(data.data || []);
       } catch (error) {
         console.error("❌ Error fetching messages:", error);
       }
     };
     fetchMessages();
-  }, []);
+  }, []); 
 
   // Lắng nghe Firestore thay đổi (nếu có)
   useEffect(() => {
@@ -89,7 +89,7 @@ const  DetailChat = () => {
               console.log("🔥 New message:", doc.data());
 
               const firestoreData = doc.data();
-              console.log("🔥 Firestore data:", firestoreData);
+              // console.log("🔥 Firestore data:", firestoreData);
 
               // 🔁 Chuyển đổi dữ liệu sang định dạng giống API
               const newMsg = {
@@ -109,7 +109,7 @@ const  DetailChat = () => {
                 return [...prev, newMsg];
               });
   
-              console.log("🔥 New formatted message:", newMsg);
+              // console.log("🔥 New formatted message:", newMsg);
 
             });
           });
@@ -125,6 +125,11 @@ const  DetailChat = () => {
       if (unsubscribe) unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    
+    scrollViewRef.current?.scrollToEnd({ animated: true });
+  }, [messages]);
 
   // Lắng nghe bàn phím
   useEffect(() => {
@@ -182,6 +187,21 @@ const  DetailChat = () => {
         `messages/${receiverId}/messages`
       );
 
+      const newMsg = {
+        _id: "123",
+        content: content,
+        conversation: idCoversation, // nếu có
+        status:"sent",
+        createdAt:new Date().toISOString(),
+        sender: {
+          _id: senderId
+        }
+      };
+
+      setMessages(prev => {
+        return [...prev, newMsg];
+      });
+      setContent("");
       let time = new Date().toISOString()
       const newMessage = {
         conversation: idCoversation,
@@ -201,7 +221,7 @@ const  DetailChat = () => {
       await addDoc(messagesSubcollectionRef, newMessage);
       
       await addToDB(newMessageForDB)
-      setContent("");
+
       console.log("✅ Tin nhắn đã được gửi!");
     } catch (error) {
       console.error("❌ Gửi tin nhắn thất bại:", error);
@@ -228,11 +248,11 @@ const  DetailChat = () => {
 
           <View style={styles.profileContainer}>
             <Image
-              source={require("../../../assets/images/avatar-test.jpg")}
+              source={{ uri: avatar}}
               style={styles.avatar}
             />
             <View style={styles.userInfo}>
-              <Text style={styles.username}>Grace</Text>
+              <Text style={styles.username}>{name}</Text>
               <View style={styles.onlineStatus}>
                 <View style={styles.onlineDot} />
                 <Text style={styles.statusText}>Online</Text>
@@ -287,6 +307,14 @@ const  DetailChat = () => {
                     minute: "2-digit",
                   })
                 : "";
+
+              const isLast = index === messages.length - 1;
+              if(isLast) {
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollToEnd({ animated: true });
+                }
+                , 200);
+              }
 
               return (
                 <View key={msg.id || index}>
