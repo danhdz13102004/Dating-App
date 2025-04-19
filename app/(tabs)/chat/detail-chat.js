@@ -27,19 +27,23 @@ import {
   limit,
 } from "firebase/firestore";
 import appConfig from "../../../configs/config";
+import { useRouter, useGlobalSearchParams, useLocalSearchParams } from 'expo-router'
 
-const DetailChat = () => {
+const  DetailChat = () => {
   const scrollViewRef = useRef(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [content, setContent] = useState("");
   const [userId, setUserId] = useState(null);
-  const idCoversation = "6800f981eaf98c411366ea79";
-  const id_partner = "6800f981eaf98c411366ea79"; // ID của người dùng khác
   const [messages, setMessages] = useState([]);
+  const router = useRouter();
+  const { idCoversation, id_partner } = useLocalSearchParams();
+  
+  
 
   // Lấy messages từ API
   useEffect(() => {
+    console.log(idCoversation, id_partner);
     const fetchMessages = async () => {
       try {
         const response = await fetch(
@@ -71,6 +75,7 @@ const DetailChat = () => {
         if (token) {
           const decoded = jwtDecode(token);
           const uid = decoded.userId;
+          // const uid = "67fb1dc83f35cac28bea0ea7";
           setUserId(uid);
     
           const q = query(
@@ -144,21 +149,58 @@ const DetailChat = () => {
     };
   }, []);
 
+  const addToDB = async (
+    newMessage
+  ) => {
+    console.log(newMessage);
+    if (newMessage) {
+      const url = `${appConfig.API_URL}/message/add`;
+      console.log("URL: ", url);
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newMessage),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Message added successfully:", data);
+      }
+    } else {
+      alert("Sent error");
+    }
+  };
+
   const sendMessage = async ({ senderId = "abc" }) => {
     try {
       const receiverId = id_partner; // ID của người dùng khác
+      console.log("CHECK SEND MESS :",senderId, receiverId)
       const messagesSubcollectionRef = collection(
         db,
         `messages/${receiverId}/messages`
       );
 
+      let time = new Date().toISOString()
       const newMessage = {
-        senderId,
-        content,
+        conversation: idCoversation,
+        sender: senderId,
+        content: content,
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       };
 
+      const newMessageForDB = {
+        conversation: idCoversation,
+        sender: senderId,
+        content: content,
+        createdAt: time,
+        updatedAt: time
+      };
       await addDoc(messagesSubcollectionRef, newMessage);
+      
+      await addToDB(newMessageForDB)
       setContent("");
       console.log("✅ Tin nhắn đã được gửi!");
     } catch (error) {
@@ -175,7 +217,7 @@ const DetailChat = () => {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <TouchableOpacity style={styles.backButton}>
+          <TouchableOpacity style={styles.backButton} onPress={()=>router.push("/(tabs)/chat")}>
             <MaterialIcons
               style={{ marginLeft: 5 }}
               name="arrow-back-ios"
@@ -236,9 +278,9 @@ const DetailChat = () => {
 
             {/* Hiển thị message từ API */}
             {messages.map((msg, index) => {
-              console.log(msg.sender._id, userId);
+              // console.log(msg.sender._id, userId);
               const isSent = msg.sender._id === userId;
-              console.log("isSent", isSent);
+              // console.log("isSent", isSent);
               const time = msg.createdAt
                 ? new Date(msg.createdAt).toLocaleTimeString([], {
                     hour: "2-digit",
