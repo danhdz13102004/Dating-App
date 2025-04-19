@@ -122,24 +122,54 @@ class ConversationService {
 
     static getMatchRequests = async ({ userId }) => {
         const matchRequests = await Conversation.find({
-            receiver: userId, // Người nhận là user hiện tại
-            status: "pending", // Chỉ lấy các cuộc hội thoại có trạng thái "pending"
+            receiver: userId,
+            status: "pending",
         })
-            .populate("sender", "name email") // Hiển thị thông tin của người gửi
-            .populate("receiver", "name email") // Hiển thị thông tin của người nhận
-            .sort({ updatedAt: -1 }); // Sắp xếp theo thời gian cập nhật mới nhất
-
+            .populate("sender", "name email birthday avatar ")
+            .populate("receiver", "name email")
+            .sort({ updatedAt: -1 });
+    
         if (!matchRequests || matchRequests.length === 0) {
             throw new NotFoundError("Không có lời mời match nào");
         }
-
+    
+        // Hàm tính tuổi
+        const calculateAge = (birthday) => {
+            const today = new Date();
+            const birthDate = new Date(birthday);
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            return age;
+        };
+    
+        // Chuyển đổi kết quả và thêm trường age vào sender
+        const formattedMatchRequests = matchRequests.map((match) => {
+            const sender = match.sender?.toObject?.() || match.sender;
+            const receiver = match.receiver?.toObject?.() || match.receiver;
+    
+            const age = sender?.birthday ? calculateAge(sender.birthday) : null;
+    
+            return {
+                ...match.toObject(),
+                sender: {
+                    ...sender,
+                    age,
+                },
+                receiver,
+            };
+        });
+    
         return {
             status: "success",
             message: "Lấy danh sách lời mời match thành công",
-            data: matchRequests,
+            data: formattedMatchRequests,
         };
     };
     
+
 }
 
 module.exports = ConversationService;

@@ -336,7 +336,8 @@ const MatchesScreen = () => {
                   key={match._id || match.id || Math.random().toString()}
                   name={match.sender?.name || 'Unknown'}
                   age={match.sender?.age || '?'}
-                  imageUrl={match.sender?.imageUrl || 'https://picsum.photos/200'}
+                  imageUrl={match.sender?.avatar || 'https://picsum.photos/200'}
+
                   onRemove={() => handleRemoveMatch(match._id || match.id)}
                   onLike={() => handleLikeMatch(match._id || match.id)}
                 />
