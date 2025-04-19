@@ -141,7 +141,7 @@ const LoginScreen = () => {
           console.log("Login failed:", data);
           setGeneralError(
             data.message ||
-              "Login failed. Please check your credentials and try again."
+            "Login failed. Please check your credentials and try again."
           );
         }
       } catch (error) {
