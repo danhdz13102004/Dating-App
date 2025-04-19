@@ -46,7 +46,7 @@ class UserService {
     try {
       const messages = await Message.find({ conversation: conversationId })
         .populate("sender", "name avatar")
-        .sort({ createdAt: -1 })
+        .sort({ createdAt: 1 })
         .exec();
 
       return messages;
