@@ -27,19 +27,23 @@ import {
   limit,
 } from "firebase/firestore";
 import appConfig from "../../../configs/config";
+import { useRouter, useGlobalSearchParams, useLocalSearchParams } from 'expo-router'
 
-const DetailChat = () => {
+const  DetailChat = () => {
   const scrollViewRef = useRef(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [content, setContent] = useState("");
   const [userId, setUserId] = useState(null);
-  const idCoversation = "6800f981eaf98c411366ea79";
-  const id_partner = "6800f981eaf98c411366ea79"; // ID của người dùng khác
   const [messages, setMessages] = useState([]);
+  const router = useRouter();
+  const { idCoversation, id_partner, name, avatar } = useLocalSearchParams();
+  
+  
 
   // Lấy messages từ API
   useEffect(() => {
+    console.log(idCoversation, id_partner);
     const fetchMessages = async () => {
       try {
         const response = await fetch(
@@ -52,14 +56,14 @@ const DetailChat = () => {
           }
         );
         const data = await response.json();
-        console.log("📥 Messages fetched from API:", data);
+        // console.log("📥 Messages fetched from API:", data);
         setMessages(data.data || []);
       } catch (error) {
         console.error("❌ Error fetching messages:", error);
       }
     };
     fetchMessages();
-  }, []);
+  }, []); 
 
   // Lắng nghe Firestore thay đổi (nếu có)
   useEffect(() => {
@@ -71,6 +75,7 @@ const DetailChat = () => {
         if (token) {
           const decoded = jwtDecode(token);
           const uid = decoded.userId;
+          // const uid = "67fb1dc83f35cac28bea0ea7";
           setUserId(uid);
     
           const q = query(
@@ -84,7 +89,7 @@ const DetailChat = () => {
               console.log("🔥 New message:", doc.data());
 
               const firestoreData = doc.data();
-              console.log("🔥 Firestore data:", firestoreData);
+              // console.log("🔥 Firestore data:", firestoreData);
 
               // 🔁 Chuyển đổi dữ liệu sang định dạng giống API
               const newMsg = {
@@ -104,7 +109,7 @@ const DetailChat = () => {
                 return [...prev, newMsg];
               });
   
-              console.log("🔥 New formatted message:", newMsg);
+              // console.log("🔥 New formatted message:", newMsg);
 
             });
           });
@@ -120,6 +125,11 @@ const DetailChat = () => {
       if (unsubscribe) unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    
+    scrollViewRef.current?.scrollToEnd({ animated: true });
+  }, [messages]);
 
   // Lắng nghe bàn phím
   useEffect(() => {
@@ -144,22 +154,74 @@ const DetailChat = () => {
     };
   }, []);
 
+  const addToDB = async (
+    newMessage
+  ) => {
+    console.log(newMessage);
+    if (newMessage) {
+      const url = `${appConfig.API_URL}/message/add`;
+      console.log("URL: ", url);
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newMessage),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Message added successfully:", data);
+      }
+    } else {
+      alert("Sent error");
+    }
+  };
+
   const sendMessage = async ({ senderId = "abc" }) => {
     try {
       const receiverId = id_partner; // ID của người dùng khác
+      console.log("CHECK SEND MESS :",senderId, receiverId)
       const messagesSubcollectionRef = collection(
         db,
         `messages/${receiverId}/messages`
       );
 
-      const newMessage = {
-        senderId,
-        content,
-        createdAt: serverTimestamp(),
+      const newMsg = {
+        _id: "123",
+        content: content,
+        conversation: idCoversation, // nếu có
+        status:"sent",
+        createdAt:new Date().toISOString(),
+        sender: {
+          _id: senderId
+        }
       };
 
-      await addDoc(messagesSubcollectionRef, newMessage);
+      setMessages(prev => {
+        return [...prev, newMsg];
+      });
       setContent("");
+      let time = new Date().toISOString()
+      const newMessage = {
+        conversation: idCoversation,
+        sender: senderId,
+        content: content,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+
+      const newMessageForDB = {
+        conversation: idCoversation,
+        sender: senderId,
+        content: content,
+        createdAt: time,
+        updatedAt: time
+      };
+      await addDoc(messagesSubcollectionRef, newMessage);
+      
+      await addToDB(newMessageForDB)
+
       console.log("✅ Tin nhắn đã được gửi!");
     } catch (error) {
       console.error("❌ Gửi tin nhắn thất bại:", error);
@@ -175,7 +237,7 @@ const DetailChat = () => {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <TouchableOpacity style={styles.backButton}>
+          <TouchableOpacity style={styles.backButton} onPress={()=>router.push("/(tabs)/chat")}>
             <MaterialIcons
               style={{ marginLeft: 5 }}
               name="arrow-back-ios"
@@ -186,11 +248,11 @@ const DetailChat = () => {
 
           <View style={styles.profileContainer}>
             <Image
-              source={require("../../../assets/images/avatar-test.jpg")}
+              source={{ uri: avatar}}
               style={styles.avatar}
             />
             <View style={styles.userInfo}>
-              <Text style={styles.username}>Grace</Text>
+              <Text style={styles.username}>{name}</Text>
               <View style={styles.onlineStatus}>
                 <View style={styles.onlineDot} />
                 <Text style={styles.statusText}>Online</Text>
@@ -236,15 +298,23 @@ const DetailChat = () => {
 
             {/* Hiển thị message từ API */}
             {messages.map((msg, index) => {
-              console.log(msg.sender._id, userId);
+              // console.log(msg.sender._id, userId);
               const isSent = msg.sender._id === userId;
-              console.log("isSent", isSent);
+              // console.log("isSent", isSent);
               const time = msg.createdAt
                 ? new Date(msg.createdAt).toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
                   })
                 : "";
+
+              const isLast = index === messages.length - 1;
+              if(isLast) {
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollToEnd({ animated: true });
+                }
+                , 200);
+              }
 
               return (
                 <View key={msg.id || index}>

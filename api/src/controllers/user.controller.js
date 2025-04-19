@@ -1,5 +1,6 @@
 const UserService = require("../services/user.service");
 const Notification = require("../models/Notification");
+const Conversation = require("../models/Conversation");
 
 class UserController {
   update = async (req, res, next) => {
@@ -16,6 +17,35 @@ class UserController {
 
     return res.status(201).json(result);
   };
+
+  // Function to get conversations by userId
+  getConversations = async (req, res, next) => {
+    try {
+      console.log(`[P]::Get_conversations::Request::`, req.params);
+      console.log("User ID:", req.params.userId);
+      const userId = req.params.userId;
+
+      console.log(`[P]::Get_conversations::UserId::`, userId);
+
+      // Fetch conversations for the user
+      const conversations = await Conversation.find({
+          $or: [{ sender: userId }, { receiver: userId }],
+          status: 'active' // Add condition for status to be 'active'
+        })
+        .populate('sender', 'name avatar') // Populate sender's name and avatar
+        .populate('receiver', 'name avatar')
+        .sort({ updatedAt: -1 }) // Populate receiver's name and avatar
+        .exec();
+
+      console.log(`[P]::Get_conversations::Result::`, conversations);
+
+      return res.status(200).json({ status: "success", data: conversations });
+    } catch (error) {
+      console.error(`[P]::Get_conversations::Error::`, error);
+      return res.status(500).json({ status: "error", message: error.message });
+    }
+  };
+
 
   // Function to get notifications by id_user
   getNotifications = async (req, res, next) => {
@@ -45,14 +75,14 @@ class UserController {
     try {
       console.log(`[P]::Get_Messages::Request::`, req.params);
       const { conversationId } = req.params;
-
+  
       console.log(`[P]::Get_Messages::ConversationId::`, conversationId);
-
-      // Fetch messages for the conversation
+  
       const messages = await UserService.getMessages(conversationId);
-
+      // messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  
       console.log(`[P]::Get_Messages::Result::`, messages);
-
+  
       return res.status(200).json({ status: "success", data: messages });
     } catch (error) {
       console.error(`[P]::Get_Messages::Error::`, error);
