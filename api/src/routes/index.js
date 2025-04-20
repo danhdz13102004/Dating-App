@@ -8,5 +8,7 @@ router.use('/auth', require('./auth.route'))
 router.use('/user', require('./user.route'))
 
 router.use('/match', require('./match.route'))
+router.use('/message', require('./message.route'))
+router.use('/conversation', require('./conversation.route'))
 
 module.exports = router

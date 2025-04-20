@@ -30,6 +30,7 @@ class UserService {
     };
   };
 
+  
   static getUserById = async (userId) => {
     const user = await User.findById(userId);
     if (!user) {
@@ -45,7 +46,7 @@ class UserService {
     try {
       const messages = await Message.find({ conversation: conversationId })
         .populate("sender", "name avatar")
-        .sort({ createdAt: -1 })
+        .sort({ createdAt: 1 })
         .exec();
 
       return messages;
@@ -53,6 +54,23 @@ class UserService {
       console.error("Error fetching messages:", error);
       throw new ConflictRequestError("Failed to fetch messages");
     }
+  };
+  static updateLocation = async ({ userId, location }) => {
+    if (!userId || !location) {
+      throw new Error("User ID and location are required");
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { location },
+      { new: true } // Trả về tài liệu đã cập nhật
+    );
+
+    if (!updatedUser) {
+      throw new Error("User not found");
+    }
+
+    return updatedUser;
   };
 }
 
