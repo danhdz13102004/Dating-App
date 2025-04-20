@@ -6,14 +6,14 @@ import {
   Pressable,
   StyleSheet,
   TouchableOpacity,
-  Alert
+  Alert,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Colors } from "../../constants/Colors";
-import appConfig from '../../configs/config';
+import appConfig from "../../configs/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from 'expo-router';
+import { router } from "expo-router";
 import { jwtDecode } from "jwt-decode";
 
 const hobbiesList = [
@@ -40,14 +40,13 @@ const HobbySelector = () => {
   useEffect(() => {
     const fetchUserId = async () => {
       try {
-        const token = await AsyncStorage.getItem('authToken');
+        const token = await AsyncStorage.getItem("authToken");
         if (token) {
           const decoded = jwtDecode(token);
           setUserId(decoded.userId);
-        }
-        else {
-          console.log('No token found, redirecting to login');
-          router.replace('/(auth)/login');
+        } else {
+          console.log("No token found, redirecting to login");
+          router.replace("/(auth)/login");
         }
       } catch (error) {
         console.error("Error fetching user ID:", error);
@@ -56,7 +55,8 @@ const HobbySelector = () => {
 
     fetchUserId();
     // Set default selected hobbies if needed
-  }), [];
+  }),
+    [];
 
   const toggleHobby = (hobby) => {
     setSelectedHobbies((prev) =>
@@ -66,11 +66,10 @@ const HobbySelector = () => {
 
   const updateHobbies = async () => {
     try {
-
       console.log("User ID: ", userId);
 
       if (!userId) {
-        Alert.alert('Error', 'User not found. Please log in again.');
+        Alert.alert("Error", "User not found. Please log in again.");
         return;
       }
 
@@ -79,41 +78,42 @@ const HobbySelector = () => {
       console.log("URL: ", url);
 
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           userId,
           hobbies: selectedHobbies,
-          replace: true
+          replace: true,
         }),
       });
 
       const data = await response.json();
-      console.log('Hobbies updated:', data);
+      console.log("Hobbies updated:", data);
 
       if (response.ok) {
-        router.push('/(tabs)/discover');
+        router.push("/(auth)/get-location");
       } else {
-        Alert.alert('Error', data.message || 'Failed to update hobbies');
+        Alert.alert("Error", data.message || "Failed to update hobbies");
       }
     } catch (error) {
-      console.error('Error updating hobbies:', error);
-      Alert.alert(
-        'Error',
-        'Failed to update hobbies. Please try again.'
-      );
+      console.error("Error updating hobbies:", error);
+      Alert.alert("Error", "Failed to update hobbies. Please try again.");
     }
   };
-
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton}>
-          <MaterialIcons style={{ marginLeft: 5 }} name="arrow-back-ios" size={20} color={Colors.primaryColor} />
+          <MaterialIcons
+            style={{ marginLeft: 5 }}
+            name="arrow-back-ios"
+            size={20}
+            color={Colors.primaryColor}
+          />
         </TouchableOpacity>
         <TouchableOpacity>
           <Text style={styles.skipText}>Skip</Text>
@@ -124,7 +124,8 @@ const HobbySelector = () => {
       <View style={styles.titleContainer}>
         <Text style={styles.title}>Your interests</Text>
         <Text style={styles.subtitle}>
-          Select a few of your interests and let everyone know what you’re passionate about.
+          Select a few of your interests and let everyone know what you’re
+          passionate about.
         </Text>
       </View>
 
@@ -141,8 +142,14 @@ const HobbySelector = () => {
               onPress={() => toggleHobby(item.name)}
               style={[styles.hobbyItem, isSelected && styles.selectedHobby]}
             >
-              <Icon name={item.icon} size={16} color={isSelected ? "#fff" : Colors.primaryColor} />
-              <Text style={isSelected ? styles.selectedText : styles.text}>{item.name}</Text>
+              <Icon
+                name={item.icon}
+                size={16}
+                color={isSelected ? "#fff" : Colors.primaryColor}
+              />
+              <Text style={isSelected ? styles.selectedText : styles.text}>
+                {item.name}
+              </Text>
             </Pressable>
           );
         }}

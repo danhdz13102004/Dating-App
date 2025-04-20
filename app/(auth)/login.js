@@ -129,7 +129,7 @@ const LoginScreen = () => {
               // User's information is not completed, navigate
               router.replace("/(auth)/profile_detail");
             } else {
-              router.replace("/(tabs)/discover");
+              router.replace("/(auth)/get-location");
             }
           } else {
             setGeneralError(

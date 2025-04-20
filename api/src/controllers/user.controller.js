@@ -112,6 +112,29 @@ class UserController {
       return res.status(500).json({ message: e.message });
     }
   };
+  updateLocation = async (req, res, next) => {
+    try {
+      const { userId, location } = req.body;
+      console.log(`[P]::Update_Location::`, { userId, location });
+
+      // Gọi service để cập nhật vị trí
+      const result = await UserService.updateLocation({ userId, location });
+
+      console.log(`[P]::Update_Location::Result::`, result);
+
+      return res.status(200).json({
+        status: "success",
+        message: "Location updated successfully",
+        data: result,
+      });
+    } catch (error) {
+      console.error(`[P]::Update_Location::Error::`, error);
+      return res.status(500).json({
+        error: { code: 500, status: "error" },
+        message: error.message,
+      });
+    }
+  };
 }
 
 module.exports = new UserController();

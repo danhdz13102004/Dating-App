@@ -27,4 +27,6 @@ router.get(
   "/check-user-info-completion/:userId",
   asyncHandler(userController.checkUserInfoCompletion)
 );
+router.post("/update-location", asyncHandler(userController.updateLocation));
+
 module.exports = router;

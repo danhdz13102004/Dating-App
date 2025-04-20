@@ -55,6 +55,23 @@ class UserService {
       throw new ConflictRequestError("Failed to fetch messages");
     }
   };
+  static updateLocation = async ({ userId, location }) => {
+    if (!userId || !location) {
+      throw new Error("User ID and location are required");
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { location },
+      { new: true } // Trả về tài liệu đã cập nhật
+    );
+
+    if (!updatedUser) {
+      throw new Error("User not found");
+    }
+
+    return updatedUser;
+  };
 }
 
 module.exports = UserService;
