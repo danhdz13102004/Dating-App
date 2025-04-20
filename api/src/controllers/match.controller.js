@@ -61,6 +61,99 @@ class MatchController {
             next(error);
         }
     };
+
+    // Lấy danh sách người dùng để match
+    static getPotentialMatches = async (req, res, next) => {
+      try {
+          console.log(`[G]::GetPotentialMatches::Request`)
+          
+          const userId = req.params.id
+          const page = parseInt(req.query.page) || 1
+          const limit = parseInt(req.query.limit) || 20
+
+          console.log(`[G]::GetPotentialMatches::Request::`, { userId, page, limit })
+          
+          if (!userId) {
+              return res.status(400).json({
+                  status: "error",
+                  message: "User ID is required."
+              })
+          }
+
+          if (page < 1 || limit < 1) {
+            return res.status(400).json({
+              status: "error",
+              message: "Page and limit must be positive integers."
+            });
+          }
+
+          const result = await MatchService.getPotentialMatches(userId, page, limit)
+          
+          console.log(`[G]::GetPotentialMatches::Result:: Found ${result.data.length} potential matches`)
+          
+          return res.status(200).json(result)
+      } catch (error) {
+          console.error(`[G]::GetPotentialMatches::Error::`, error.message || error)
+          next(error)
+      }
+  }
+
+  // Controller cập nhật preferences 
+  static updatePreferences = async (req, res, next) => {
+    try {
+      console.log(`[P]::UpdatePreferences::Request::`, { body: req.body })
+      
+      const userId = req.params.id
+      const preferences = {
+          gender: req.body.gender || 'any',
+          maxDistance: req.body.maxDistance || 30,
+          minAge: req.body.minAge || 18,
+          maxAge: req.body.maxAge || 100
+      }
+      
+      if (!userId) {
+          return res.status(400).json({
+              status: "error",
+              message: "User ID is required."
+          })
+      }
+      
+      // Gọi service để cập nhật
+      const result = await MatchService.updatePreferences(userId, preferences)
+      
+      console.log(`[P]::UpdatePreferences::Result::`, result)
+      
+      return res.status(200).json(result)
+    } catch (error) {
+        console.error(`[P]::UpdatePreferences::Error::`, error.message || error)
+        next(error)
+    }
+  }
+
+  static getPreferences = async (req, res, next) => {
+    try {
+      console.log(`[G]::GetPreferences::Request::`, { params: req.params })
+      
+      const userId = req.params.id
+      
+      if (!userId) {
+          return res.status(400).json({
+              status: "error",
+              message: "User ID is required."
+          })
+      }
+      
+      // Gọi service để lấy preferences
+      const result = await MatchService.getPreferences(userId)
+      
+      console.log(`[G]::GetPreferences::Result::`, result)
+      
+      return res.status(200).json(result)
+    } catch (error) {
+      console.error(`[G]::GetPreferences::Error::`, error.message || error)
+      next(error)
+    }
+  }
 }
 
 module.exports = MatchController;
