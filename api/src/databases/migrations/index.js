@@ -18,6 +18,7 @@ async function createIndexes() {
   
   await Notification.collection.createIndex({ id_conversation: 1 })
   await Notification.collection.createIndex({ id_post: 1 })
+  await Notification.collection.createIndex({ id_user: 1 })
   
   await Post.collection.createIndex({ user_id: 1 })
   

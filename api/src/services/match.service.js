@@ -3,6 +3,8 @@
 const User = require("../models/User");
 const Conversation = require("../models/Conversation");
 const { NotFoundError, ConflictRequestError } = require("../core/error.response");
+const { calculateDistance } = require('../helpers/calculateDistance')
+const mongoose = require('mongoose')
 
 class MatchService {
     // Kiểm tra và xử lý match giữa hai người dùng
@@ -184,6 +186,188 @@ class MatchService {
             },
         };
     };
+
+    static getPotentialMatches = async (userId, page = 1, limit = 20) => {
+      console.log(`[G]::getPotentialMatches::Request::`, { userId, page, limit })
+          
+      const currentUser = await User.findById(userId)
+    
+      if (!currentUser) {
+          throw new NotFoundError("User not found.")
+      }
+    
+      // Kiểm tra xem currentUser đã tạo conversation chưa
+      const conversations = await Conversation.find({
+        $or: [
+          { sender: userId, status: { $in: ['active', 'pending'] } },
+          { receiver: userId, status: { $in: ['active', 'pending'] } },
+        ]
+      })
+    
+      const excludeUserIds = conversations.map(conversation => {
+        return conversation.sender.toString() === userId.toString() ? conversation.receiver : conversation.sender
+      })
+    
+      const now = new Date()
+      const minAge = currentUser.preference.minAge
+      const maxAge = currentUser.preference.maxAge
+      const currentYear = now.getFullYear()
+    
+      // Dựa vào ngày sinh để xem có nằm trong minAge, maxAge không
+      const maxBirthday = new Date(currentYear - minAge, now.getMonth(), now.getDate())
+      const minBirthday = new Date(currentYear - maxAge, now.getMonth(), now.getDate())
+    
+      const genderFilter = currentUser.preference.gender !== 'any'
+        ? { gender: currentUser.preference.gender }
+        : {}
+    
+      const hobbiesFilter = currentUser.hobbies.length > 0
+        ? { hobbies: { $in: currentUser.hobbies}}
+        : {}
+    
+      const offset = (page - 1) * limit
+    
+      // Chuẩn bị query cho aggregation
+      const matchQuery = {
+        _id: {
+          $ne: currentUser._id,
+          $nin: [...currentUser.skippedUsers, ...excludeUserIds]
+        },
+        birthday: {
+          $gte: minBirthday,
+          $lte: maxBirthday
+        },
+        ...genderFilter,
+        ...hobbiesFilter
+      }
+    
+      // Đếm tổng số potential matches trước
+      // Lưu ý: Không thể dùng countDocuments với $geoNear nên phải chạy thêm aggregation
+      const countPipeline = [
+        {
+          $geoNear: {
+            near: {
+              type: 'Point',
+              coordinates: currentUser.location.coordinates
+            },
+            distanceField: 'calculatedDistance',
+            maxDistance: currentUser.preference.maxDistance * 1000, // km -> m
+            query: matchQuery,
+            spherical: true
+          }
+        },
+        { $count: "total" }
+      ]
+    
+      const countResult = await User.aggregate(countPipeline)
+      const totalCount = countResult.length > 0 ? countResult[0].total : 0
+    
+      // Lấy potential matches với pagination
+      const matchesPipeline = [
+        {
+          $geoNear: {
+            near: {
+              type: 'Point',
+              coordinates: currentUser.location.coordinates
+            },
+            distanceField: 'calculatedDistance',
+            maxDistance: currentUser.preference.maxDistance * 1000, // km -> m
+            query: matchQuery,
+            spherical: true
+          }
+        },
+        { $skip: offset },
+        { $limit: limit },
+        { 
+          $project: { 
+            password: 0, 
+            skippedUsers: 0, 
+            __v: 0, 
+            createdAt: 0, 
+            updatedAt: 0 
+          } 
+        }
+      ]
+    
+      const potentialMatches = await User.aggregate(matchesPipeline)
+      
+      // Format khoảng cách cho mỗi potential match
+      const matchesWithDistance = potentialMatches.map(user => {
+        // calculatedDistance là trường được tạo ra bởi $geoNear, đơn vị là m
+        const distanceInKm = user.calculatedDistance / 1000
+        
+        return {
+          ...user,
+          distance: `${Math.round(distanceInKm)}`, // đơn vị: km
+          calculatedDistance: undefined // loại bỏ trường calculatedDistance
+        }
+      })
+    
+      // Calculate pagination metadata
+      const totalPages = Math.ceil(totalCount / limit)
+      const hasNextPage = page < totalPages
+      const hasPrevPage = page > 1
+    
+      return {
+        status: "success",
+        data: matchesWithDistance,
+        metadata: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages,
+          hasNextPage,
+          hasPrevPage,
+        }
+      }
+    }
+
+    static updatePreferences = async (userId, preferences) => {
+      console.log(`[P]::updatePreferences::Request::`, { userId, preferences })
+      
+      const currentUser = await User.findById(userId)
+      if (!currentUser) {
+        throw new NotFoundError("User not found.")
+      }
+      
+      // Xác định các thuộc tính preferences để cập nhật
+      currentUser.preference.gender = preferences.gender || currentUser.preference.gender
+      currentUser.preference.maxDistance = preferences.maxDistance || currentUser.preference.maxDistance
+      currentUser.preference.minAge = preferences.minAge || currentUser.preference.minAge
+      currentUser.preference.maxAge = preferences.maxAge || currentUser.preference.maxAge
+      
+      // Kiểm tra khoảng tuổi hợp lệ
+      if (currentUser.preference.minAge > currentUser.preference.maxAge) {
+        throw new ConflictRequestError("Minimum age cannot be greater than maximum age.")
+      }
+      
+      await currentUser.save()
+      
+      return {
+        status: "success",
+        message: "User preferences updated successfully.",
+        data: {
+          preference: currentUser.preference
+        }
+      }
+    }
+
+    static getPreferences = async (userId) => {
+      console.log(`[P]::getPreferences::Request::`, { userId })
+      
+      const currentUser = await User.findById(userId)
+      if (!currentUser) {
+        throw new NotFoundError("User not found.")
+      }
+      
+      return {
+        status: "success",
+        message: "User preferences retrieved successfully.",
+        data: {
+          preference: currentUser.preference
+        }
+      }
+    }
 }
 
-module.exports = MatchService;
+module.exports = MatchService

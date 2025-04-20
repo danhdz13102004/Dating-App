@@ -2,7 +2,7 @@
 
 const express = require("express");
 const matchController = require("../controllers/match.controller");
-const asyncHandler = require("../middlewares/asynHandler.middleware");
+const asyncHandler = require("../middlewares/asyncHandler.middleware");
 const router = express.Router();
 
 // API để kiểm tra match giữa hai người dùng
@@ -17,4 +17,13 @@ router.post("/:id/like", asyncHandler(matchController.likeUser));
 // API để xử lý hành động "Dislike" người dùng
 router.post("/:id/dislike", asyncHandler(matchController.skipUser));
 
-module.exports = router;
+// API lấy danh sách người dùng theo hobbies, location, age range (ko bao gồm người đã bị skipped)
+router.get('/:id/potential-matches', asyncHandler(matchController.getPotentialMatches))
+
+// API cập nhật preferences, gender, age range, location để tìm người match
+router.put('/:id/preferences', asyncHandler(matchController.updatePreferences))
+
+// API lấy preference của người dùng
+router.get('/:id/preferences', asyncHandler(matchController.getPreferences))
+
+module.exports = router

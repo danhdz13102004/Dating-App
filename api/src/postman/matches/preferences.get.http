@@ -1,0 +1,5 @@
+@url=http://localhost:6969/v1/api
+
+## Get user preferences
+GET {{url}}/match/680287364c9a55b68d6f38b9/preferences
+Content-Type: application/json

@@ -1,0 +1,12 @@
+@url=http://localhost:6969/v1/api
+
+## Potential Matches
+PUT {{url}}/match/68023be085642b42b9a1fb2d/preferences
+Content-Type: application/json
+
+{
+  "gender": "female",
+  "maxDistance": 50,
+  "minAge": 18,
+  "maxAge": 40
+}
