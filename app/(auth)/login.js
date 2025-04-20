@@ -31,8 +31,6 @@ const LoginScreen = () => {
     setPasswordVisible(!passwordVisible);
   };
 
-
-
   useEffect(() => {
     const fetchUserId = async () => {
       try {
@@ -129,7 +127,7 @@ const LoginScreen = () => {
               // User's information is not completed, navigate
               router.replace("/(auth)/profile_detail");
             } else {
-              router.replace("/(auth)/get-location");
+              router.replace("/(tabs)/discover");
             }
           } else {
             setGeneralError(
@@ -141,7 +139,7 @@ const LoginScreen = () => {
           console.log("Login failed:", data);
           setGeneralError(
             data.message ||
-            "Login failed. Please check your credentials and try again."
+              "Login failed. Please check your credentials and try again."
           );
         }
       } catch (error) {
