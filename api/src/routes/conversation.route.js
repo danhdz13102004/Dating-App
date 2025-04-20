@@ -2,7 +2,7 @@
 
 const express = require("express");
 const conversationController = require("../controllers/conversation.controller");
-const asyncHandler = require("../middlewares/asynHandler.middleware");
+const asyncHandler = require("../middlewares/asyncHandler.middleware");
 const router = express.Router();
 
 // API để đổi trạng thái thành "active"
