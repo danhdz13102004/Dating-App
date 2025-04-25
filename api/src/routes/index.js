@@ -11,4 +11,6 @@ router.use('/match', require('./match.route'))
 router.use('/message', require('./message.route'))
 router.use('/conversation', require('./conversation.route'))
 
+router.use('/post', require('./post.route'))
+
 module.exports = router
