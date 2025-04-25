@@ -30,4 +30,6 @@ router.get(
 );
 router.post("/update-location", asyncHandler(userController.updateLocation));
 
+router.get("/profile/:userId", asyncHandler(userController.getProfile));
+
 module.exports = router;

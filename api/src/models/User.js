@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema({
         coordinates: { type: [Number], default: [0, 0] }
     },
     hobbies: [{ type: String }],
-    avatar: { type: String },
+    avatar: { type: String, default: 'https://sbcf.fr/wp-content/uploads/2018/03/sbcf-default-avatar.png' },
     profileImgs: [{ type: String }],
     description: { type: String },
     gender: { type: String, enum: ['male', 'female', 'other'] },

@@ -1,4 +1,5 @@
 const UserService = require("../services/user.service");
+const PostService = require("../services/post.service");
 const Notification = require("../models/Notification");
 const Conversation = require("../models/Conversation");
 
@@ -34,18 +35,41 @@ class UserController {
         })
         .populate('sender', 'name avatar') // Populate sender's name and avatar
         .populate('receiver', 'name avatar')
-        .sort({ updatedAt: -1 }) // Populate receiver's name and avatar
+        .sort({ updatedAt: -1 }) // Sort by most recent conversations
         .exec();
 
-      console.log(`[P]::Get_conversations::Result::`, conversations);
+      // Enhance conversations with partner's newest image post
+      const enhancedConversations = await Promise.all(conversations.map(async (conversation) => {
+        // Determine who is the partner
+        const partnerId = conversation.sender._id.toString() === userId 
+          ? conversation.receiver._id.toString() 
+          : conversation.sender._id.toString();
+        
+        // Get partner's newest image post (from last 24h only)
+        const newestPost = await PostService.getNewestImagePostByUserId(partnerId);
+        
+        // Convert mongoose document to plain object
+        const conversationObj = conversation.toObject();
+        
+        // Add newest post image to conversation object
+        if (newestPost) {
+          conversationObj.imagePost = newestPost.images;
+          conversationObj.hasStory = true; // Flag to indicate this is a fresh image
+        } else {
+          conversationObj.hasStory = false;
+        }
+        
+        return conversationObj;
+      }));
 
-      return res.status(200).json({ status: "success", data: conversations });
+      console.log(`[P]::Get_conversations::Result::`, enhancedConversations);
+
+      return res.status(200).json({ status: "success", data: enhancedConversations });
     } catch (error) {
       console.error(`[P]::Get_conversations::Error::`, error);
       return res.status(500).json({ status: "error", message: error.message });
     }
   };
-
 
   // Function to get notifications by id_user
   getNotifications = async (req, res, next) => {
@@ -129,6 +153,36 @@ class UserController {
       });
     } catch (error) {
       console.error(`[P]::Update_Location::Error::`, error);
+      return res.status(500).json({
+        error: { code: 500, status: "error" },
+        message: error.message,
+      });
+    }
+  };
+
+  getProfile = async (req, res, next) => {
+    try {
+      const { userId } = req.params;
+      console.log(`[P]::Get_Profile::`, userId);
+
+      // Gọi service để lấy thông tin người dùng
+      const user = await UserService.getUserById(userId);
+
+      if (!user) {
+        return res.status(404).json({
+          status: "error",
+          message: "User not found",
+        });
+      }
+
+      console.log(`[P]::Get_Profile::Result::`, user);
+
+      return res.status(200).json({
+        status: "success",
+        data: user,
+      });
+    } catch (error) {
+      console.error(`[P]::Get_Profile::Error::`, error);
       return res.status(500).json({
         error: { code: 500, status: "error" },
         message: error.message,
