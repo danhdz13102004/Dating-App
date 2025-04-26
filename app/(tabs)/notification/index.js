@@ -135,7 +135,7 @@ const NotificationsScreen = () => {
               };
   
               setNotifications(prev => {
-                return [...prev, newNtf];
+                return [newNtf, ...prev];
               });
             });
           });
