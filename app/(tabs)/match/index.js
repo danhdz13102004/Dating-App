@@ -18,7 +18,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import appConfig from '../../../configs/config';
 import { jwtDecode } from 'jwt-decode';
-
+import { db } from "../../../firebaseConfig";
+import {
+  collection,
+  serverTimestamp,
+  addDoc,
+} from "firebase/firestore";
 
 const MatchCard = ({ name, age, imageUrl, onRemove, onLike }) => {
   return (
@@ -137,7 +142,7 @@ const MatchesScreen = () => {
 
       // Parse response JSON
       const responseText = await response.text();
-      console.log('API Response preview:', responseText.substring(0, 100));
+      console.log('API Response preview:', responseText);
 
       const data = JSON.parse(responseText);
 
@@ -225,8 +230,55 @@ const MatchesScreen = () => {
     }
   };
 
+  const addNtfToDB = async (match)=>{
+
+    const ntfMatchForDB = {
+      content: `${match.receiver.name} has accepted your request`,
+      id_conversation: match._id, 
+      id_user: match.sender._id,  
+    };
+
+    const response = await fetch(`${appConfig.API_URL}/notification/add`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(ntfMatchForDB)
+    });
+
+    console.log(response.data);
+  }
+  const sendAcceptedMatch = async (match) => {
+    try {
+      console.log("🔎CHECK SEND MATCHES :",match.sender._id, match.receiver._id)
+      const acceptedMatchesSubcollectionRef = collection(
+        db,
+        `acceptedMatches/${match.sender._id}/acceptedMatches`,
+      );
+
+      const newAcceptedmatch = {
+        content: `${match.receiver.name} has accepted your request`,
+        id_conversation: match._id, 
+        id_user: match.sender._id,
+        createdAt: serverTimestamp(),
+        sender: {
+          _id: match.receiver._id,
+          avatar: match.receiver.avatar,
+        }
+      };
+      
+      await addDoc(acceptedMatchesSubcollectionRef, newAcceptedmatch);
+      await addNtfToDB(match);
+
+      console.log("✅ Accepted match đã được gửi!");
+    } catch (error) {
+      console.error("❌ Gửi Accepted match thất bại:", error);
+    }
+  };
   // Hàm đổi trạng thái cuộc hội thoại thành "active" (like match)
-  const handleLikeMatch = async (id) => {
+  const handleLikeMatch = async (match) => {
+    id = match._id || match.id
     if (!id) {
       console.error('No match ID provided');
       return;
@@ -245,8 +297,11 @@ const MatchesScreen = () => {
       // Hiển thị loading state nếu cần
       setLoading(true);
 
+      //FireBase
+      sendAcceptedMatch(match);
+
       // Gọi API để đổi trạng thái
-      const response = await fetch(`${appConfig.API_URL}/conversation/${id}/active`, {
+      const response = await fetch(`${appConfig.API_URL}/conversation/${match._id || match.id}/active`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -339,7 +394,7 @@ const MatchesScreen = () => {
                   imageUrl={match.sender?.avatar || 'https://picsum.photos/200'}
 
                   onRemove={() => handleRemoveMatch(match._id || match.id)}
-                  onLike={() => handleLikeMatch(match._id || match.id)}
+                  onLike={() => handleLikeMatch(match)}
                 />
               ))}
             </View>

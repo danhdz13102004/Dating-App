@@ -15,6 +15,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
 import { useRouter } from 'expo-router';
 import appConfig from '../../../configs/config'; 
+import { db } from "../../../firebaseConfig";
+import {
+  onSnapshot,
+  query,
+  collection,
+  orderBy,
+  limit,
+} from "firebase/firestore";
+
+
 const time_format = (isoTime) => {
   const time = Math.floor((new Date() - new Date(isoTime)) / 1000);
   if (time < 60) return time + 's ago';
@@ -88,6 +98,58 @@ const NotificationsScreen = () => {
     };
 
     fetchNotifications();
+  }, []);
+
+  // Lắng nghe Firestore thay đổi (nếu có)
+  useEffect(() => {
+    let unsubscribe;
+
+    const fetchUserIdAndSubscribe = async () => {
+      try {
+        const token = await AsyncStorage.getItem("authToken");
+        if (token) {
+          const decoded = jwtDecode(token);
+          const uid = decoded.userId;
+          setUserId(uid);
+    
+          const q = query(
+            collection(db, `acceptedMatches/${uid}/acceptedMatches`),
+            orderBy("createdAt", "desc"),
+            limit(1) // 🔥 Chỉ lấy tin nhắn mới nhất
+          );
+    
+          unsubscribe = onSnapshot(q, (querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+              console.log("🔥 New accepted:", doc.data());
+
+              const firestoreData = doc.data();
+              // console.log("🔥 Firestore data:", firestoreData);
+
+              // 🔁 Chuyển đổi dữ liệu sang định dạng giống API
+              const newNtf = {
+                _id: doc.id,
+                createdAt: firestoreData.createdAt?.toDate().toISOString() || new Date().toISOString(),
+                content: firestoreData.content || "",
+                is_read: false,
+                url : firestoreData.sender.avatar,
+              };
+  
+              setNotifications(prev => {
+                return [...prev, newNtf];
+              });
+            });
+          });
+        }
+      } catch (error) {
+        console.error("❌ Error in subscription:", error);
+      }
+    };
+
+    fetchUserIdAndSubscribe();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   return (
