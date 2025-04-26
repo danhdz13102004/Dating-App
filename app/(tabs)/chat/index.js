@@ -56,6 +56,10 @@ const MessagesScreen = () => {
     const [myPost, setMyPost] = useState(null);
     const progressAnim = useRef(new Animated.Value(0)).current;
     const router = useRouter();
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchResults, setSearchResults] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
+
 
     const time_format = (isoTime) => {
         const time = Math.max(0, Math.floor((new Date() - new Date(isoTime)) / 1000));
@@ -155,7 +159,7 @@ const MessagesScreen = () => {
                 avatar: _partner.avatar,
                 message: conversation.last_message,
                 time: time_format(conversation.updatedAt),
-                unread: 0
+                unread: conversation.unread
             };
             _message.push(message);
         });
@@ -268,24 +272,24 @@ const MessagesScreen = () => {
 
     const viewStory = (story) => {
         console.log("View story:", story);
-        
+
         // If it's the current user and they have a recent post,
         // use the post image as the story image
         if (story.isCurrentUser) {
             if (myPost) {
-            setCurrentStory({
-                ...story,
-                storyImage: myPost.images[0]
-            });
+                setCurrentStory({
+                    ...story,
+                    storyImage: myPost.images[0]
+                });
             }
             else {
-                Alert.alert('Warning','You dont have any post!')
+                Alert.alert('Warning', 'You dont have any post!')
                 return;
             }
         } else {
             setCurrentStory(story);
         }
-        
+
         setStoryModalVisible(true);
         progressAnim.setValue(0);
         setTimeout(animateStoryProgress, 200);
@@ -294,19 +298,19 @@ const MessagesScreen = () => {
     const pickImage = async () => {
         try {
             const galleryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            
+
             if (galleryStatus.status !== 'granted') {
                 Alert.alert('Permission required', 'Please allow access to your photo library to upload images.');
                 return;
             }
-            
+
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
                 aspect: [4, 3],
                 quality: 0.8,
             });
-            
+
             if (!result.canceled && result.assets && result.assets.length > 0) {
                 const imageUri = result.assets[0].uri;
                 setSelectedImage(imageUri);
@@ -316,14 +320,14 @@ const MessagesScreen = () => {
             console.error('Error picking image:', error);
             Alert.alert('Error', 'Failed to pick image. Please try again.');
         }
-        
+
         setModalVisible(false);
     };
-    
+
     const uploadImageToCloudinary = async (imageUri) => {
         try {
             setUploading(true);
-            
+
             const formData = new FormData();
             formData.append("file", {
                 uri: imageUri,
@@ -331,15 +335,15 @@ const MessagesScreen = () => {
                 name: "upload.jpg",
             });
             formData.append("upload_preset", process.env.EXPO_PUBLIC_CLOUDINARY_PRESET);
-            
+
             const response = await fetch(process.env.EXPO_PUBLIC_CLOUDINARY_ENDPOINT, {
                 method: "POST",
                 body: formData,
             });
-            
+
             const data = await response.json();
             console.log("Cloudinary upload response:", data);
-            
+
             if (data.secure_url) {
                 setUploadedImageUrl(data.secure_url);
                 return data.secure_url;
@@ -369,12 +373,12 @@ const MessagesScreen = () => {
                     content: 'Check out this image!'
                 })
             });
-            
+
             const result = await response.json();
-            
+
             if (result.status === "success") {
                 Alert.alert('Success', 'Post created successfully!');
-                
+
                 // Update myPost with the newly created post
                 if (result.data) {
                     setMyPost({
@@ -383,7 +387,7 @@ const MessagesScreen = () => {
                         createdAt: new Date().toISOString()
                     });
                 }
-                
+
                 setSelectedImage(null);
                 setUploadedImageUrl(null);
                 setShowPostModal(false);
@@ -395,18 +399,18 @@ const MessagesScreen = () => {
             Alert.alert('Error', 'Failed to create post. Please try again.');
         }
     };
-    
+
     const uploadImageAndCreatePost = async () => {
         if (!selectedImage) {
             Alert.alert('Error', 'No image selected');
             return;
         }
-        
+
         try {
             setUploading(true);
-            
+
             const cloudinaryUrl = await uploadImageToCloudinary(selectedImage);
-            
+
             if (cloudinaryUrl) {
                 await createPost(cloudinaryUrl);
             }
@@ -417,7 +421,7 @@ const MessagesScreen = () => {
             setUploading(false);
         }
     };
-    
+
     const removeImage = async () => {
         try {
             console.log("Removing image...");
@@ -427,9 +431,9 @@ const MessagesScreen = () => {
                     'Content-Type': 'application/json',
                 },
             });
-            
+
             const result = await response.json();
-            
+
             if (result.success) {
                 setMyPost(null);
                 setCurrentUser(prev => ({
@@ -445,7 +449,7 @@ const MessagesScreen = () => {
             console.error('Error removing image:', error);
             Alert.alert('Error', 'Failed to remove image. Please try again.');
         }
-        
+
         setModalVisible(false);
     };
 
@@ -466,14 +470,14 @@ const MessagesScreen = () => {
                 </TouchableOpacity>
             );
         }
-        
+
         return (
-            <TouchableOpacity 
+            <TouchableOpacity
                 style={styles.activityItem}
                 onPress={() => item.hasStory ? viewStory(item) : null}
             >
                 <View style={[
-                    styles.activityAvatar, 
+                    styles.activityAvatar,
                     item.hasStory ? styles.hasStoryRing : null
                 ]}>
                     <Image source={{ uri: item.avatar }} style={styles.activityImage} />
@@ -483,13 +487,31 @@ const MessagesScreen = () => {
         );
     };
 
-    const navigate = (converId, receiverId, name, avatar) => {
+    const navigate = async (converId, receiverId, name, avatar) => {
         console.log(converId, receiverId);
+
+        try {
+
+            // Gửi request đến backend để đánh dấu là đã đọc
+            await fetch(`${appConfig.API_URL}/user/markAsRead/${converId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ id: userId }),// userId đã có từ useEffect
+            });
+        } catch (error) {
+            console.error("❌ Lỗi khi đánh dấu tin nhắn đã đọc:", error);
+        }
+
+        // Điều hướng sang trang chi tiết chat
         router.navigate(`/(tabs)/chat/detail-chat?idCoversation=${converId}&id_partner=${receiverId}&name=${name}&avatar=${avatar}`);
     };
 
+
+
     const renderMessage = ({ item }) => (
-        <TouchableOpacity style={styles.messageItem} onPress={()=>navigate(item.id, item.partnerId, item.name, item.avatar)}>
+        <TouchableOpacity style={styles.messageItem} onPress={() => navigate(item.id, item.partnerId, item.name, item.avatar)}>
             <Image source={{ uri: item.avatar }} style={styles.messageAvatar} />
             <View style={styles.messageContent}>
                 <View style={styles.messageHeader}>
@@ -519,7 +541,7 @@ const MessagesScreen = () => {
 
     const activitiesData = React.useMemo(() => {
         if (!currentUser) return activities;
-        
+
         const currentUserActivity = {
             id: currentUser._id || userId,
             name: currentUser.name || 'You',
@@ -528,9 +550,79 @@ const MessagesScreen = () => {
             hasStory: myPost !== null, // Set hasStory based on myPost
             storyImage: myPost ? myPost.images : currentUser.avatar // Use myPost image if available
         };
-        
+
         return [currentUserActivity, ...activities];
     }, [activities, currentUser, userId, myPost]);
+
+
+
+    const handleSearch = async (text) => {
+        setSearchQuery(text);
+
+        if (text.trim().length === 0) {
+            setSearchResults([]);
+            setIsSearching(false);
+            return;
+        }
+
+        setIsSearching(true);
+
+        try {
+            const response = await fetch(
+                `${appConfig.API_URL}/user/search/${userId}?q=${encodeURIComponent(text)}`,
+                {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            // Sửa lại code xử lý dữ liệu:
+            const data = await response.json();
+            console.log("Search results:", data);
+
+            if (data && data.data && Array.isArray(data.data)) {
+                setSearchResults(data.data);
+            } else if (Array.isArray(data)) {
+                setSearchResults(data);
+            } else {
+                setSearchResults([]);
+            }
+        } catch (error) {
+            console.error("Error searching for conversations:", error);
+            setSearchResults([]);
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    // Add a function to render search results
+    const renderSearchResult = ({ item }) => (
+        <TouchableOpacity
+            style={styles.messageItem}
+            onPress={() => navigate(item.id, item.partnerId || item.id, item.name, item.avatar || noImageUrl)}
+        >
+            <Image
+                source={{ uri: item.avatar || noImageUrl }}
+                style={styles.messageAvatar}
+            />
+            <View style={styles.messageContent}>
+                <View style={styles.messageHeader}>
+                    <Text style={styles.messageName}>{item.name}</Text>
+                    <Text style={styles.messageTime}>{item.last_message ? time_format(new Date()) : ""}</Text>
+                </View>
+                <View style={styles.messagePreview}>
+                    <Text
+                        style={styles.messageText}
+                        numberOfLines={1}
+                    >
+                        {item.last_message || "Bắt đầu cuộc trò chuyện"}
+                    </Text>
+                </View>
+            </View>
+        </TouchableOpacity>
+    );
 
     return (
         <SafeAreaView style={styles.container}>
@@ -549,8 +641,38 @@ const MessagesScreen = () => {
                     style={styles.searchInput}
                     placeholder="Search"
                     placeholderTextColor="#999"
+                    value={searchQuery}
+                    onChangeText={handleSearch}
                 />
+                {searchQuery.length > 0 && (
+                    <TouchableOpacity onPress={() => {
+                        setSearchQuery("");
+                        setSearchResults([]);
+                    }}>
+                        <Icon name="cancel" size={18} color="#999" />
+                    </TouchableOpacity>
+                )}
             </View>
+
+            {/* Add search results container */}
+            {searchQuery.length > 0 && (
+                <View style={styles.searchResultsWrapper}>
+                    <Text style={styles.sectionTitle}>Kết quả tìm kiếm</Text>
+                    {isSearching ? (
+                        <ActivityIndicator size="small" color={Colors.primaryColor} style={styles.searchLoader} />
+                    ) : searchResults.length > 0 ? (
+                        <FlatList
+                            data={searchResults}
+                            renderItem={renderSearchResult}
+                            keyExtractor={(item) => item.id}
+                            style={styles.messagesList}
+                            initialNumToRender={10}
+                        />
+                    ) : (
+                        <Text style={styles.noResultsText}>Không tìm thấy kết quả</Text>
+                    )}
+                </View>
+            )}
 
             <View style={styles.activitiesSection}>
                 <Text style={styles.sectionTitle}>Activities</Text>
@@ -586,23 +708,23 @@ const MessagesScreen = () => {
                     onPress={() => setModalVisible(false)}
                 >
                     <View style={styles.modalContent}>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={styles.modalOption}
                             onPress={pickImage}
                         >
                             <Icon name="add-a-photo" size={24} color={Colors.primaryColor} style={styles.modalIcon} />
                             <Text style={styles.modalOptionText}>Upload new photo</Text>
                         </TouchableOpacity>
-                        
-                        <TouchableOpacity 
+
+                        <TouchableOpacity
                             style={styles.modalOption}
                             onPress={removeImage}
                         >
                             <Icon name="delete" size={24} color="#FF3B30" style={styles.modalIcon} />
                             <Text style={styles.modalOptionText}>Remove current photo</Text>
                         </TouchableOpacity>
-                        
-                        <TouchableOpacity 
+
+                        <TouchableOpacity
                             style={styles.modalOption}
                             onPress={() => {
                                 setModalVisible(false);
@@ -621,8 +743,8 @@ const MessagesScreen = () => {
                                 {myPost ? 'View your story' : 'View your profile'}
                             </Text>
                         </TouchableOpacity>
-                        
-                        <TouchableOpacity 
+
+                        <TouchableOpacity
                             style={[styles.modalOption, styles.cancelOption]}
                             onPress={() => setModalVisible(false)}
                         >
@@ -642,7 +764,7 @@ const MessagesScreen = () => {
                 }}
             >
                 <View style={styles.storyModalContainer}>
-                    <Animated.View 
+                    <Animated.View
                         style={[
                             styles.storyProgressBar,
                             {
@@ -651,9 +773,9 @@ const MessagesScreen = () => {
                                     outputRange: ['0%', '100%']
                                 })
                             }
-                        ]} 
+                        ]}
                     />
-                    
+
                     <View style={styles.storyHeader}>
                         <View style={styles.storyUser}>
                             {currentStory && (
@@ -663,7 +785,7 @@ const MessagesScreen = () => {
                                 </>
                             )}
                         </View>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             onPress={() => {
                                 setStoryModalVisible(false);
                                 progressAnim.setValue(0);
@@ -672,11 +794,11 @@ const MessagesScreen = () => {
                             <Icon name="close" size={24} color="#f54c54" />
                         </TouchableOpacity>
                     </View>
-                    
+
                     {currentStory && (
-                        <Image 
-                            source={{ uri: currentStory.storyImage }} 
-                            style={styles.storyImage} 
+                        <Image
+                            source={{ uri: currentStory.storyImage }}
+                            style={styles.storyImage}
                             resizeMode="cover"
                         />
                     )}
@@ -695,7 +817,7 @@ const MessagesScreen = () => {
                             <Icon name="close" size={24} color="#000" />
                         </TouchableOpacity>
                         <Text style={styles.postModalTitle}>Create Image Post</Text>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             onPress={uploadImageAndCreatePost}
                             disabled={uploading}
                         >
@@ -704,7 +826,7 @@ const MessagesScreen = () => {
                             </Text>
                         </TouchableOpacity>
                     </View>
-                    
+
                     <View style={styles.postContent}>
                         <View style={styles.postUser}>
                             {currentUser && (
@@ -714,11 +836,11 @@ const MessagesScreen = () => {
                                 </>
                             )}
                         </View>
-                        
+
                         {selectedImage && (
                             <View style={styles.selectedImageContainer}>
                                 <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     style={styles.removeImageButton}
                                     onPress={() => setSelectedImage(null)}
                                 >
@@ -726,7 +848,7 @@ const MessagesScreen = () => {
                                 </TouchableOpacity>
                             </View>
                         )}
-                        
+
                         {uploading && (
                             <View style={styles.loadingContainer}>
                                 <ActivityIndicator size="large" color={Colors.primaryColor} />
@@ -1066,7 +1188,52 @@ const styles = StyleSheet.create({
         marginTop: 16,
         fontSize: 16,
         color: Colors.primaryColor,
-    }
+    },
+    // Add these to your StyleSheet
+    searchResultsContainer: {
+        position: 'absolute',  // Thêm vào để đảm bảo hiển thị trên các phần tử khác
+        top: 110,  // Điều chỉnh vị trí theo vị trí của thanh tìm kiếm
+        left: 16,
+        right: 16,
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        maxHeight: 300,  // Tăng chiều cao tối đa
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 10,  // Tăng elevation
+        zIndex: 100,    // Tăng zIndex
+    },
+    searchResultsList: {
+        flex: 1,
+    },
+    searchResultItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+    },
+    searchResultIcon: {
+        marginRight: 15,
+    },
+    searchResultText: {
+        fontSize: 16,
+        color: '#333',
+    },
+    noResultsText: {
+        padding: 15,
+        textAlign: 'center',
+        color: '#999',
+    },
+    searchLoader: {
+        padding: 15,
+    },
 });
 
 export default MessagesScreen;

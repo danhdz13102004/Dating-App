@@ -2,6 +2,7 @@ const UserService = require("../services/user.service");
 const PostService = require("../services/post.service");
 const Notification = require("../models/Notification");
 const Conversation = require("../models/Conversation");
+const Message = require("../models/Message");
 
 class UserController {
   update = async (req, res, next) => {
@@ -47,10 +48,16 @@ class UserController {
         
         // Get partner's newest image post (from last 24h only)
         const newestPost = await PostService.getNewestImagePostByUserId(partnerId);
-        
+
         // Convert mongoose document to plain object
         const conversationObj = conversation.toObject();
-        
+
+        const unreadCount = await Message.countDocuments({
+          conversation: conversation._id,
+          sender: partnerId, // chỉ tính tin từ đối phương
+          status: { $ne: 'read' }
+        });
+
         // Add newest post image to conversation object
         if (newestPost) {
           conversationObj.imagePost = newestPost.images;
@@ -58,6 +65,8 @@ class UserController {
         } else {
           conversationObj.hasStory = false;
         }
+
+        conversationObj.unread = unreadCount;
         
         return conversationObj;
       }));
@@ -189,6 +198,87 @@ class UserController {
       });
     }
   };
+  markMessagesAsRead = async (req, res) => {
+    const conversationId = req.params.conversationId;
+    const userId = req.body.id;
+    console.log(`[P]::Mark_Messages_As_Read::`, conversationId, userId);
+
+    try {
+      const result = await Message.updateMany(
+        {
+          conversation: conversationId,
+          sender: { $ne: userId }, // không phải mình gửi
+          status: { $in: ["sent", "delivered"] } // chưa đọc
+        },
+        { $set: { status: "read" } }
+      );
+
+      res.status(200).json({
+        message: `${result.modifiedCount} tin nhắn đã được đánh dấu là đã đọc.`,
+      });
+    } catch (error) {
+      console.error("Lỗi:", error);
+      res.status(500).json({ message: "Lỗi khi cập nhật tin nhắn." });
+    }
+  };
+
+  searchUser = async (req, res) => {
+    try {
+      const searchQuery = req.query.q;  // từ khóa tìm kiếm
+      const userId = req.params.userId;  // ID của người dùng hiện tại
+
+      console.log(`[P]::Search_Users::Query::`, searchQuery);
+      console.log(`[P]::Search_Users::UserId::`, userId);
+
+      if (!searchQuery) {
+        return res.status(400).json({ status: "error", message: "Không có từ khóa tìm kiếm" });
+      }
+
+      // Fetch all conversations for the user
+      const conversations = await Conversation.find({
+        $or: [{ sender: userId }, { receiver: userId }],
+        status: 'active'
+      })
+        .populate('sender', 'name avatar')
+        .populate('receiver', 'name avatar')
+        .sort({ updatedAt: -1 })
+        .exec();
+
+      // Filter conversations where the partner's name matches the search query
+      const filteredConversations = conversations.filter(convo => {
+        const partner = convo.sender._id.toString() === userId ?
+          convo.receiver : convo.sender;
+        return partner.name.toLowerCase().includes(searchQuery.toLowerCase());
+      });
+
+      // Get basic information for search results
+      const searchResults = filteredConversations.map(convo => {
+        const partner = convo.sender._id.toString() === userId ?
+          convo.receiver : convo.sender;
+        return {
+          id: convo._id,
+          partnerId: partner._id,
+          name: partner.name,
+          avatar: partner.avatar || 'https://via.placeholder.com/150',
+          last_message: convo.last_message
+        };
+      });
+
+      console.log(`[P]::Search_Users::Results::`, searchResults);
+
+      if (searchResults.length === 0) {
+        return res.status(404).json({ status: "error", message: "Không tìm thấy cuộc trò chuyện nào" });
+      }
+
+      return res.status(200).json({ status: "success", data: searchResults });
+    } catch (error) {
+      console.error(`[P]::Search_Users::Error::`, error);
+      return res.status(500).json({ status: "error", message: error.message });
+    }
+  };
+
+
+
 }
 
 module.exports = new UserController();
