@@ -42,6 +42,59 @@ function generateRandomCoordinates(baseCoords, maxDistanceKm) {
   ];
 }
 
+// Helper function to generate 5 random profile image URLs
+function generateRandomProfileImages() {
+  const profileImgs = [];
+  for (let i = 0; i < 5; i++) {
+    const randomId = Math.floor(Math.random() * 200) + 1;
+    profileImgs.push(`https://picsum.photos/id/${randomId}/200/300`);
+  }
+  return profileImgs;
+}
+
+// Define standardized hobbies list
+const hobbiesList = [
+  { id: 1, name: "Photography", icon: "camera" },
+  { id: 2, name: "Shopping", icon: "shopping-bag" },
+  { id: 3, name: "Karaoke", icon: "microphone" },
+  { id: 4, name: "Yoga", icon: "yin-yang" },
+  { id: 5, name: "Cooking", icon: "utensils" },
+  { id: 6, name: "Tennis", icon: "table-tennis" },
+  { id: 7, name: "Run", icon: "running" },
+  { id: 8, name: "Swimming", icon: "swimmer" },
+  { id: 9, name: "Art", icon: "palette" },
+  { id: 10, name: "Traveling", icon: "plane" },
+  { id: 11, name: "Extreme", icon: "bolt" },
+  { id: 12, name: "Music", icon: "music" },
+  { id: 13, name: "Drink", icon: "wine-glass" },
+  { id: 14, name: "Games", icon: "gamepad" },
+];
+
+// Function to get random hobbies from the hobbies list with required hobbies
+function getRandomHobbies(count = 3) {
+  // Find the yoga and run entries
+  const yogaEntry = hobbiesList.find(hobby => hobby.name === "Yoga");
+  const runEntry = hobbiesList.find(hobby => hobby.name === "Run");
+  
+  // Create a filtered list without the required hobbies
+  const filteredList = hobbiesList.filter(hobby => 
+    hobby.name !== "Yoga" && hobby.name !== "Run"
+  );
+  
+  // Shuffle the filtered list
+  const shuffled = [...filteredList].sort(() => 0.5 - Math.random());
+  
+  // Take random hobbies from the shuffled list (count - 2 to account for yoga and run)
+  const randomHobbies = shuffled.slice(0, count - 2);
+  
+  // Add the required hobbies
+  if (yogaEntry) randomHobbies.push(yogaEntry);
+  if (runEntry) randomHobbies.push(runEntry);
+  
+  // Return just the hobby names
+  return randomHobbies.map(hobby => hobby.name);
+}
+
 async function seedUsers() {
   try {
     console.log('Seeding users...')
@@ -79,11 +132,11 @@ async function seedUsers() {
         birthday: new Date('2004-05-22'), // 21 tuổi
         location: {
           type: 'Point',
-          coordinates: hanoi
+          coordinates: danang
         },
-        hobbies: ['đọc sách', 'du lịch', 'chơi game'],
-        avatar: 'https://example.com/avatars/phuc.jpg',
-        profileImgs: ['https://example.com/profiles/phuc1.jpg', 'https://example.com/profiles/phuc2.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/736x/fb/a2/86/fba28680f1795185ff3e1d4e3b181701.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Tôi là 1 lập trình viên biết sử dụng chat GPT.',
         gender: 'male',
         preference: {
@@ -102,11 +155,11 @@ async function seedUsers() {
         birthday: new Date('2004-08-22'), // 21 tuổi
         location: {
           type: 'Point',
-          coordinates: generateRandomCoordinates(hanoi, 5) // 5km
+          coordinates: generateRandomCoordinates(danang, 5) // 5km
         },
-        hobbies: ['đọc sách', 'du lịch', 'xem phim'],
-        avatar: 'https://example.com/avatars/mai.jpg',
-        profileImgs: ['https://example.com/profiles/mai1.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/736x/3b/e2/a0/3be2a067cb354015aa33a929d3049b39.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Thích khám phá những điều mới mẻ và gặp gỡ người mới.',
         gender: 'female',
         preference: {
@@ -124,11 +177,11 @@ async function seedUsers() {
         birthday: new Date('2003-03-12'), // 22 tuổi
         location: {
           type: 'Point',
-          coordinates: generateRandomCoordinates(hanoi, 10) // 10km
+          coordinates: generateRandomCoordinates(danang, 10) // 10km
         },
-        hobbies: ['đọc sách', 'yoga', 'nấu ăn'],
-        avatar: 'https://example.com/avatars/huong.jpg',
-        profileImgs: [],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/736x/33/33/43/3333433e712f28c122bd8e9cde8e1eac.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Yêu thiên nhiên và động vật.',
         gender: 'female',
         preference: {
@@ -146,11 +199,11 @@ async function seedUsers() {
         birthday: new Date('2000-06-18'), // 25 tuổi
         location: {
           type: 'Point',
-          coordinates: generateRandomCoordinates(hanoi, 20) // 20km
+          coordinates: generateRandomCoordinates(danang, 20) // 20km
         },
-        hobbies: ['du lịch', 'chơi game', 'chụp ảnh'],
-        avatar: 'https://example.com/avatars/ha.jpg',
-        profileImgs: [],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQy5tb0USHvG9tP540twLwKgiOjkk6gVcmRNg&s',
+        profileImgs: generateRandomProfileImages(),
         description: 'Thích phiêu lưu và trải nghiệm mới.',
         gender: 'female',
         preference: {
@@ -169,11 +222,11 @@ async function seedUsers() {
         birthday: new Date('2002-11-05'), // 23 tuổi
         location: {
           type: 'Point',
-          coordinates: generateRandomCoordinates(hanoi, 45) // 45km - quá xa
+          coordinates: generateRandomCoordinates(danang, 45) // 45km - quá xa
         },
-        hobbies: ['đọc sách', 'chơi game'],
-        avatar: 'https://example.com/avatars/lan.jpg',
-        profileImgs: [],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/736x/52/32/22/52322276e1ca4256de03567167dd5947.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Sống chậm và tận hưởng.',
         gender: 'female',
         preference: {
@@ -192,11 +245,11 @@ async function seedUsers() {
         birthday: new Date('1994-04-20'), // 31 tuổi - quá lớn
         location: {
           type: 'Point',
-          coordinates: generateRandomCoordinates(hanoi, 15) // 15km
+          coordinates: generateRandomCoordinates(danang, 15) // 15km
         },
-        hobbies: ['du lịch', 'yoga'],
-        avatar: 'https://example.com/avatars/trang.jpg',
-        profileImgs: [],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/736x/c5/52/53/c55253def93a88ec4afaa3d405023b18.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Sống hết mình với đam mê.',
         gender: 'female',
         preference: {
@@ -215,11 +268,11 @@ async function seedUsers() {
         birthday: new Date('2001-09-15'), // 24 tuổi
         location: {
           type: 'Point',
-          coordinates: generateRandomCoordinates(hanoi, 8) // 8km
+          coordinates: generateRandomCoordinates(danang, 8) // 8km
         },
-        hobbies: ['chơi game', 'du lịch', 'đọc sách'],
-        avatar: 'https://example.com/avatars/tuan.jpg',
-        profileImgs: [],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/originals/8d/e5/9e/8de59ea875845377d90e944bb6ed3e8f.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Thích cuộc sống năng động.',
         gender: 'male',
         preference: {
@@ -238,11 +291,11 @@ async function seedUsers() {
         birthday: new Date('2003-12-22'), // 22 tuổi
         location: {
           type: 'Point',
-          coordinates: generateRandomCoordinates(hanoi, 12) // 12km
+          coordinates: generateRandomCoordinates(danang, 12) // 12km
         },
-        hobbies: ['đọc sách', 'du lịch'],
-        avatar: 'https://example.com/avatars/thanh.jpg',
-        profileImgs: [],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://preview.redd.it/qc9kjus5fkt91.png?width=640&crop=smart&auto=webp&s=7222dcbe44c4a9d46e5484bac7aab86412587b65',
+        profileImgs: generateRandomProfileImages(),
         description: 'Sống chậm và yêu đời.',
         gender: 'female',
         preference: {
@@ -261,11 +314,11 @@ async function seedUsers() {
         birthday: new Date('2004-08-22'), // 21 tuổi
         location: {
           type: 'Point',
-          coordinates: generateRandomCoordinates(hanoi, 6) // 6km
+          coordinates: generateRandomCoordinates(danang, 6) // 6km
         },
-        hobbies: ['nấu ăn', 'yoga', 'xem phim'],
-        avatar: 'https://example.com/avatars/cupid.jpg',
-        profileImgs: [],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://media.istockphoto.com/id/492529287/photo/portrait-of-happy-laughing-man.jpg?s=612x612&w=0&k=20&c=0xQcd69Bf-mWoJYgjxBSPg7FHS57nOfYpZaZlYDVKRE=',
+        profileImgs: generateRandomProfileImages(),
         description: 'Yêu thiên nhiên và động vật.',
         gender: 'female',
         preference: {
@@ -283,11 +336,11 @@ async function seedUsers() {
         birthday: new Date('2004-10-22'), // 21 tuổi
         location: {
           type: 'Point',
-          coordinates: generateRandomCoordinates(hanoi, 9) // 9km
+          coordinates: generateRandomCoordinates(danang, 9) // 9km
         },
-        hobbies: ['đá bóng', 'xem phim'],
-        avatar: 'https://example.com/avatars/danh.jpg',
-        profileImgs: [],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/736x/65/97/10/659710b41dc0cc7e79d681ea26fab1d3.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Yêu thiên nhiên và động vật.',
         gender: 'male',
         preference: {
@@ -298,7 +351,6 @@ async function seedUsers() {
         },
         skippedUsers: []
       },
-      
       // Thêm 25 users mới tại Đà Nẵng
       // User chính tại Đà Nẵng
       {
@@ -310,9 +362,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danang // Trung tâm Đà Nẵng
         },
-        hobbies: ['du lịch', 'lập trình', 'đi biển'],
-        avatar: 'https://example.com/avatars/khoa.jpg',
-        profileImgs: ['https://example.com/profiles/khoa1.jpg', 'https://example.com/profiles/khoa2.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://plus.unsplash.com/premium_photo-1682092603230-1ce7cf8ca451?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8aW5kaWFuJTIwbWFufGVufDB8fDB8fHww',
+        profileImgs: generateRandomProfileImages(),
         description: 'Developer sống và làm việc tại Đà Nẵng, yêu thích không gian biển và núi.',
         gender: 'male',
         preference: {
@@ -333,9 +385,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.haiChau // Quận Hải Châu
         },
-        hobbies: ['yoga', 'ẩm thực', 'đọc sách'],
-        avatar: 'https://example.com/avatars/hale.jpg',
-        profileImgs: ['https://example.com/profiles/hale1.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/736x/b6/26/c3/b626c36976ac71db521b357a0ae7d3c3.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Làm việc trong ngành du lịch, yêu thích khám phá ẩm thực địa phương.',
         gender: 'female',
         preference: {
@@ -348,16 +400,16 @@ async function seedUsers() {
       },
       {
         name: 'Nguyễn Thị Hoài An',
-        email: 'annguyen@gmail.com',
+        email: 'https://i.pinimg.com/736x/1e/b4/d1/1eb4d1008df88ce115657179af8517cb.jpg',
         password: hashedPassword,
         birthday: new Date('2003-09-22'), // 22 tuổi
         location: {
           type: 'Point',
           coordinates: danangAreas.sonTra // Quận Sơn Trà
         },
-        hobbies: ['chụp ảnh', 'leo núi', 'cà phê'],
+        hobbies: getRandomHobbies(10),
         avatar: 'https://example.com/avatars/an.jpg',
-        profileImgs: ['https://example.com/profiles/an1.jpg', 'https://example.com/profiles/an2.jpg'],
+        profileImgs: generateRandomProfileImages(),
         description: 'Photographer yêu biển Đà Nẵng.',
         gender: 'female',
         preference: {
@@ -370,16 +422,16 @@ async function seedUsers() {
       },
       {
         name: 'Phạm Thị Mỹ Linh',
-        email: 'linhpham@gmail.com',
+        email: 'https://i.pinimg.com/736x/a0/ab/95/a0ab95858cf5de2634e369585c244125.jpg',
         password: hashedPassword,
         birthday: new Date('2001-11-05'), // 24 tuổi
         location: {
           type: 'Point',
           coordinates: danangAreas.myKhe // Bãi biển Mỹ Khê
         },
-        hobbies: ['bơi lội', 'du lịch', 'nấu ăn'],
+        hobbies: getRandomHobbies(10),
         avatar: 'https://example.com/avatars/linh.jpg',
-        profileImgs: ['https://example.com/profiles/linh1.jpg'],
+        profileImgs: generateRandomProfileImages(),
         description: 'HLV bơi lội, yêu biển và nắng.',
         gender: 'female',
         preference: {
@@ -399,9 +451,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.camLe // Quận Cẩm Lệ
         },
-        hobbies: ['đàn piano', 'đọc sách', 'thời trang'],
-        avatar: 'https://example.com/avatars/ngoc.jpg',
-        profileImgs: ['https://example.com/profiles/ngoc1.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/736x/79/3e/e4/793ee4f548bd4dfc23232ae7df755c70.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Sinh viên năm 3 Đại học Đà Nẵng, chuyên ngành âm nhạc.',
         gender: 'female',
         preference: {
@@ -421,9 +473,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.thanhKhe // Quận Thanh Khê
         },
-        hobbies: ['vẽ tranh', 'handmade', 'đi bộ'],
-        avatar: 'https://example.com/avatars/anh.jpg',
-        profileImgs: ['https://example.com/profiles/anh1.jpg', 'https://example.com/profiles/anh2.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/736x/fd/04/1f/fd041fae95a68a324ff69888e9c75566.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Hoạ sĩ tự do, thích làm những món đồ handmade.',
         gender: 'female',
         preference: {
@@ -443,9 +495,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.lieuChieu // Quận Liên Chiểu
         },
-        hobbies: ['đọc sách', 'du lịch', 'nấu ăn'],
-        avatar: 'https://example.com/avatars/thao.jpg',
-        profileImgs: ['https://example.com/profiles/thao1.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/736x/25/b4/bf/25b4bff47fc3911d58592232b3ff5361.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Sinh viên IT, thích khám phá công nghệ mới.',
         gender: 'female',
         preference: {
@@ -465,9 +517,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.nguHanhSon // Quận Ngũ Hành Sơn
         },
-        hobbies: ['yoga', 'thiền', 'nấu ăn chay'],
-        avatar: 'https://example.com/avatars/tram.jpg',
-        profileImgs: ['https://example.com/profiles/tram1.jpg', 'https://example.com/profiles/tram2.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/474x/5b/54/56/5b54567f379eeb5d2a0ccbe89ba37507.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Hướng dẫn viên yoga, sống healthy và tối giản.',
         gender: 'female',
         preference: {
@@ -487,9 +539,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.hoianNearby // Gần Hội An
         },
-        hobbies: ['chụp ảnh', 'du lịch', 'làm đẹp'],
-        avatar: 'https://example.com/avatars/yen.jpg',
-        profileImgs: ['https://example.com/profiles/yen1.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/236x/71/a1/48/71a14843f169a25b0d19e05bc6b1fc19.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Travel blogger, thường xuyên di chuyển giữa Đà Nẵng và Hội An.',
         gender: 'female',
         preference: {
@@ -509,9 +561,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.hoaVang // Huyện Hòa Vang
         },
-        hobbies: ['đọc sách', 'làm vườn', 'nấu ăn'],
-        avatar: 'https://example.com/avatars/huongdang.jpg',
-        profileImgs: ['https://example.com/profiles/huongdang1.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/736x/59/9f/33/599f333c60b67be1564c9f6cf360cbe7.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Giáo viên tiểu học, yêu thiên nhiên và trẻ em.',
         gender: 'female',
         preference: {
@@ -532,9 +584,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.haiChau // Quận Hải Châu
         },
-        hobbies: ['lập trình', 'chơi guitar', 'du lịch'],
-        avatar: 'https://example.com/avatars/tuanle.jpg',
-        profileImgs: ['https://example.com/profiles/tuanle1.jpg', 'https://example.com/profiles/tuanle2.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://kenh14cdn.com/203336854389633024/2021/6/19/photo-1-1624085688954722666788.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Senior developer tại một công ty phần mềm ở Đà Nẵng.',
         gender: 'male',
         preference: {
@@ -554,9 +606,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.thanhKhe // Quận Thanh Khê
         },
-        hobbies: ['thể thao', 'bóng rổ', 'du lịch'],
-        avatar: 'https://example.com/avatars/huy.jpg',
-        profileImgs: ['https://example.com/profiles/huy1.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://www.unhcr.ca/wp-content/uploads/2016/08/16-08-01-UNHCR-Zsolt-Balla-Afghan-unaccompanied-child-refugee-Hungary.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'HLV thể hình, đam mê bóng rổ và cuộc sống lành mạnh.',
         gender: 'male',
         preference: {
@@ -576,9 +628,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.sonTra // Quận Sơn Trà
         },
-        hobbies: ['lướt sóng', 'leo núi', 'chụp ảnh'],
-        avatar: 'https://example.com/avatars/nam.jpg',
-        profileImgs: ['https://example.com/profiles/nam1.jpg', 'https://example.com/profiles/nam2.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://preview.redd.it/eavxzvh6pfo91.jpg?width=640&crop=smart&auto=webp&s=858545d9eb2eed51c13088e6401e6e60d3989dd6',
+        profileImgs: generateRandomProfileImages(),
         description: 'Hướng dẫn viên du lịch mạo hiểm tại Sơn Trà.',
         gender: 'male',
         preference: {
@@ -598,9 +650,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.myKhe // Bãi biển Mỹ Khê
         },
-        hobbies: ['bartender', 'du lịch', 'âm nhạc'],
+        hobbies: getRandomHobbies(10),
         avatar: 'https://example.com/avatars/anhpham.jpg',
-        profileImgs: ['https://example.com/profiles/anhpham1.jpg'],
+        profileImgs: generateRandomProfileImages(),
         description: 'Bartender tại một resort ven biển, yêu âm nhạc và cocktail.',
         gender: 'male',
         preference: {
@@ -620,9 +672,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.camLe // Quận Cẩm Lệ
         },
-        hobbies: ['kinh doanh', 'đọc sách', 'thể thao'],
-        avatar: 'https://example.com/avatars/thanh.jpg',
-        profileImgs: ['https://example.com/profiles/thanh1.jpg', 'https://example.com/profiles/thanh2.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/736x/6b/f8/00/6bf80038fb91f76d186ca9be599f5d6f.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Chủ chuỗi quán cà phê tại Đà Nẵng, thích đọc sách về kinh doanh.',
         gender: 'male',
         preference: {
@@ -642,9 +694,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.lieuChieu // Quận Liên Chiểu
         },
-        hobbies: ['âm nhạc', 'chơi nhạc cụ', 'du lịch'],
-        avatar: 'https://example.com/avatars/quan.jpg',
-        profileImgs: ['https://example.com/profiles/quan1.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://img.freepik.com/free-photo/front-view-smiley-man-seaside_23-2149737022.jpg?semt=ais_hybrid&w=740',
+        profileImgs: generateRandomProfileImages(),
         description: 'Nhạc sĩ tự do, biết chơi nhiều loại nhạc cụ.',
         gender: 'male',
         preference: {
@@ -664,9 +716,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.nguHanhSon // Quận Ngũ Hành Sơn
         },
-        hobbies: ['nhiếp ảnh', 'leo núi', 'thiền'],
-        avatar: 'https://example.com/avatars/minh.jpg',
-        profileImgs: ['https://example.com/profiles/minh1.jpg', 'https://example.com/profiles/minh2.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/originals/e2/4c/6f/e24c6f5d9079f94038038de0bc11ea2f.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Nhiếp ảnh gia chuyên chụp phong cảnh Đà Nẵng - Hội An.',
         gender: 'male',
         preference: {
@@ -686,9 +738,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.baNa // Bà Nà Hills
         },
-        hobbies: ['thể thao', 'leo núi', 'du lịch'],
-        avatar: 'https://example.com/avatars/kien.jpg',
-        profileImgs: ['https://example.com/profiles/kien1.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/736x/5a/fe/a2/5afea2d3fffaf782c09e2d0cd1c306e8.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Làm việc tại khu du lịch Bà Nà Hills, thích hoạt động ngoài trời.',
         gender: 'male',
         preference: {
@@ -708,9 +760,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.hoaVang // Huyện Hòa Vang
         },
-        hobbies: ['nông nghiệp sạch', 'đọc sách', 'yoga'],
-        avatar: 'https://example.com/avatars/long.jpg',
-        profileImgs: ['https://example.com/profiles/long1.jpg', 'https://example.com/profiles/long2.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/originals/29/83/92/2983929ccf0d2dd8b9ef6fca31017b07.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Chủ trang trại hữu cơ ở Hòa Vang, đam mê canh tác bền vững.',
         gender: 'male',
         preference: {
@@ -731,9 +783,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.hoianNearby // Gần Hội An
         },
-        hobbies: ['thiền', 'yoga', 'làm đồ thủ công'],
-        avatar: 'https://example.com/avatars/lananh.jpg',
-        profileImgs: ['https://example.com/profiles/lananh1.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/736x/60/42/87/6042872a88bdc12304e97f851ce046ed.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Giáo viên yoga, chuyên về thiền và nghệ thuật sống chánh niệm.',
         gender: 'female',
         preference: {
@@ -753,9 +805,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.myKhe // Bãi biển Mỹ Khê
         },
-        hobbies: ['lướt sóng', 'du lịch', 'ngoại ngữ'],
-        avatar: 'https://example.com/avatars/hoang.jpg',
-        profileImgs: ['https://example.com/profiles/hoang1.jpg', 'https://example.com/profiles/hoang2.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/474x/92/1b/51/921b51f07bcdd183a09d5f996f7a0b91.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Surfer và là chủ một quán bar ven biển, nói được 5 thứ tiếng.',
         gender: 'male',
         preference: {
@@ -775,9 +827,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.haiChau // Quận Hải Châu
         },
-        hobbies: ['piano', 'vẽ', 'đọc sách'],
-        avatar: 'https://example.com/avatars/trangly.jpg',
-        profileImgs: ['https://example.com/profiles/trangly1.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/736x/37/43/b3/3743b3745033c4b0227c27d1e0c452f0.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Sinh viên Conservatory of Music, mê văn học cổ điển.',
         gender: 'female',
         preference: {
@@ -797,9 +849,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.sonTra // Quận Sơn Trà
         },
-        hobbies: ['trồng cây', 'bảo vệ môi trường', 'thiền'],
-        avatar: 'https://example.com/avatars/phucvo.jpg',
-        profileImgs: ['https://example.com/profiles/phucvo1.jpg', 'https://example.com/profiles/phucvo2.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/736x/c0/70/7c/c0707c2f583cb190c41327b544f0a1bf.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Nhà hoạt động môi trường, sáng lập dự án tái chế tại Đà Nẵng.',
         gender: 'male',
         preference: {
@@ -819,9 +871,9 @@ async function seedUsers() {
           type: 'Point',
           coordinates: danangAreas.thanhKhe // Quận Thanh Khê
         },
-        hobbies: ['nấu ăn', 'ẩm thực', 'du lịch'],
-        avatar: 'https://example.com/avatars/kimchi.jpg',
-        profileImgs: ['https://example.com/profiles/kimchi1.jpg'],
+        hobbies: getRandomHobbies(10),
+        avatar: 'https://i.pinimg.com/736x/55/50/7b/55507b1804e448d61231141a9c3a40c7.jpg',
+        profileImgs: generateRandomProfileImages(),
         description: 'Đầu bếp tại nhà hàng cao cấp, đam mê ẩm thực Việt Nam.',
         gender: 'female',
         preference: {

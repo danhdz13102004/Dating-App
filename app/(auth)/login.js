@@ -125,7 +125,7 @@ const LoginScreen = () => {
 
             if (checkResponse.ok && !checkData.data.isCompleted) {
               // User's information is not completed, navigate
-              router.replace("/(tabs)/match");
+              router.replace("/(auth)/profile_detail");
             } else {
               router.replace("/(tabs)/discover");
             }

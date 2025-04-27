@@ -592,14 +592,14 @@ const MatchScreen = () => {
     }
   };
 
-  // Handle age range change
-  // const handleAgeRangeChange = (type, value) => {
-  //     if (type === 'min') {
-  //         setAgeRange([Math.min(value, ageRange[1]), ageRange[1]])
-  //     } else {
-  //         setAgeRange([ageRange[0], Math.max(value, ageRange[0])])
-  //     }
-  // }
+  // Function to capitalize first letter of each word
+  const capitalizeFirstLetter = (string) => {
+    if (!string) return '';
+    return string
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
 
   // Toggle profile view
   const toggleProfileView = () => {
@@ -672,7 +672,7 @@ const MatchScreen = () => {
       .then(() => {
         // Chuyển đến trang detail-photo-profile
         router.push({
-          pathname: "/(tabs)/match/detail-photo-profile",
+          pathname: "/(tabs)/discover/detail-photo-profile",
           params: { selectedIndex },
         });
       })
@@ -842,7 +842,7 @@ const MatchScreen = () => {
               />
               {/* <Text style={styles.locationText}>{currentUser.location}</Text> */}
               <View style={styles.kmBadge}>
-                <Text style={styles.kmText}>{currentUser.distance}</Text>
+                <Text style={styles.kmText}>{currentUser.distance} km</Text>
               </View>
             </View>
 
@@ -871,14 +871,7 @@ const MatchScreen = () => {
                         index < 2 && styles.interestTextHighlighted,
                       ]}
                     >
-                      {index < 2 && (
-                        <FontAwesome5
-                          name={index === 0 ? "plane" : "book"}
-                          size={12}
-                          style={styles.interestIcon}
-                        />
-                      )}{" "}
-                      {interest}
+                      {capitalizeFirstLetter(interest)}
                     </Text>
                   </View>
                 ))}

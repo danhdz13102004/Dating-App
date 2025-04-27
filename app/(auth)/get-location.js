@@ -34,7 +34,9 @@ const GetLocationScreen = () => {
       const location = await Location.getCurrentPositionAsync({});
       console.log("User Location:", location);
 
-      const { latitude, longitude } = location.coords;
+      // const { latitude, longitude } = location.coords;
+      const latitude = 16.0544;
+      const longitude = 108.2022;
       const token = await AsyncStorage.getItem("authToken");
       const userId = JSON.parse(atob(token.split(".")[1])).userId;
 

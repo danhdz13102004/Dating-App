@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   ScrollView,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AntDesign from '@expo/vector-icons/AntDesign';
@@ -26,15 +27,51 @@ import {
 
 
 const time_format = (isoTime) => {
-  const time = Math.floor((new Date() - new Date(isoTime)) / 1000);
-  if (time < 60) return time + 's ago';
-  let min = Math.round(time / 60);
-  if (min < 60) return min + 'm ago';
-  let hour = Math.round(min / 60);
-  return hour + 'h ago';
+  const now = new Date();
+  const date = new Date(isoTime);
+  const secondsDiff = Math.floor((now - date) / 1000);
+  
+  // Less than a minute
+  if (secondsDiff < 60) {
+    return `${secondsDiff}s ago`;
+  }
+  
+  // Less than an hour
+  const minutesDiff = Math.floor(secondsDiff / 60);
+  if (minutesDiff < 60) {
+    return `${minutesDiff}m ago`;
+  }
+  
+  // Less than a day
+  const hoursDiff = Math.floor(minutesDiff / 60);
+  if (hoursDiff < 24) {
+    return `${hoursDiff}h ago`;
+  }
+  
+  // Less than a week
+  const daysDiff = Math.floor(hoursDiff / 24);
+  if (daysDiff < 7) {
+    return `${daysDiff}d ago`;
+  }
+  
+  // Less than a month (approximately 30 days)
+  if (daysDiff < 30) {
+    const weeksDiff = Math.floor(daysDiff / 7);
+    return `${weeksDiff}w ago`;
+  }
+  
+  // Less than a year
+  const monthsDiff = Math.floor(daysDiff / 30);
+  if (monthsDiff < 12) {
+    return `${monthsDiff}mo ago`;
+  }
+  
+  // More than a year
+  const yearsDiff = Math.floor(monthsDiff / 12);
+  return `${yearsDiff}y ago`;
 };
 
-const NotificationItem = ({ createdAt, content, is_read, url = 'https://picsum.photos/200' }) => {
+const NotificationItem = ({ createdAt, content, is_read, url = 'https://cdn.pixabay.com/photo/2021/11/15/23/30/bell-6799634_1280.png' }) => {
   return (
     <View style={is_read ? styles.notificationItem_seen : styles.notificationItem_unseen}>
       <View style={styles.notificationIconContainer}>
@@ -59,48 +96,54 @@ const NotificationItem = ({ createdAt, content, is_read, url = 'https://picsum.p
 const NotificationsScreen = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const token = await AsyncStorage.getItem('authToken');
-        if (!token) {
-          console.log('No token found, redirecting to login');
-          router.replace('/(auth)/login');
-          return;
-        }
-
-        const decoded = jwtDecode(token);
-        const id_user = decoded?.userId;
-        console.log('User ID:', id_user);
-        const url = `${appConfig.API_URL}/user/notifications/${id_user}`;
-        console.log('Fetching notifications from:', url);   
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          } 
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch notifications');
-        }
-
-        const json = await response.json();
-        console.log('Notifications data:', json.data);
-        setNotifications(json.data || []);
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
-      } finally {
-        setLoading(false);
+  const fetchNotifications = async () => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      if (!token) {
+        console.log('No token found, redirecting to login');
+        router.replace('/(auth)/login');
+        return;
       }
-    };
 
+      const decoded = jwtDecode(token);
+      const id_user = decoded?.userId;
+      console.log('User ID:', id_user);
+      const url = `${appConfig.API_URL}/user/notifications/${id_user}`;
+      console.log('Fetching notifications from:', url);   
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        } 
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch notifications');
+      }
+
+      const json = await response.json();
+      console.log('Notifications data:', json.data);
+      setNotifications(json.data || []);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
     fetchNotifications();
   }, []);
 
-  // Lắng nghe Firestore thay đổi (nếu có)
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchNotifications();
+  };
+
   useEffect(() => {
     let unsubscribe;
 
@@ -115,7 +158,7 @@ const NotificationsScreen = () => {
           const q = query(
             collection(db, `acceptedMatches/${uid}/acceptedMatches`),
             orderBy("createdAt", "desc"),
-            limit(1) // 🔥 Chỉ lấy tin nhắn mới nhất
+            limit(1)
           );
     
           unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -123,9 +166,7 @@ const NotificationsScreen = () => {
               console.log("🔥 New accepted:", doc.data());
 
               const firestoreData = doc.data();
-              // console.log("🔥 Firestore data:", firestoreData);
 
-              // 🔁 Chuyển đổi dữ liệu sang định dạng giống API
               const newNtf = {
                 _id: doc.id,
                 createdAt: firestoreData.createdAt?.toDate().toISOString() || new Date().toISOString(),
@@ -164,20 +205,37 @@ const NotificationsScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.notificationsList}>
-        {loading ? (
+      <ScrollView 
+        style={styles.notificationsList}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#FF4C7F"]}
+            tintColor="#FF4C7F"
+          />
+        }
+      >
+        {loading && !refreshing ? (
           <ActivityIndicator size="large" color="#4488ff" style={{ marginTop: 50 }} />
-        ) : (
+        ) : notifications.length > 0 ? (
           notifications.map((item, index) => (
             <React.Fragment key={item._id}>
               <NotificationItem
                 createdAt={item.createdAt}
                 content={item.content}
                 is_read={item.is_read}
+                url={item.url}
               />
               {index !== notifications.length - 1 && <View style={styles.divider} />}
             </React.Fragment>
           ))
+        ) : (
+          <View style={styles.emptyNotificationContainer}>
+            <Ionicons name="notifications-off-outline" size={60} color="#cccccc" />
+            <Text style={styles.emptyNotificationTitle}>No Notifications</Text>
+            <Text style={styles.emptyNotificationText}>You don't have any notifications yet</Text>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -270,6 +328,22 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: '#eee',
+  },
+  emptyNotificationContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 100,
+  },
+  emptyNotificationTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  emptyNotificationText: {
+    fontSize: 16,
+    color: '#888888',
   },
 });
 
