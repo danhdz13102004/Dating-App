@@ -126,7 +126,7 @@ class ConversationService {
             status: "pending",
         })
             .populate("sender", "name email birthday avatar ")
-            .populate("receiver", "name email")
+            .populate("receiver", "name email avatar")
             .sort({ updatedAt: -1 });
     
         if (!matchRequests || matchRequests.length === 0) {
