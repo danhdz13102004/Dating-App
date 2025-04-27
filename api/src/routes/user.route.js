@@ -21,6 +21,12 @@ router.get(
   "/messages/:conversationId",
   asyncHandler(userController.getMessages)
 );
+router.get(
+  "/search/:userId",
+  asyncHandler(userController.searchUser)
+);
+router.put("/markAsRead/:conversationId", asyncHandler(userController.markMessagesAsRead));
+
 
 router.post("/update", asyncHandler(userController.update));
 
