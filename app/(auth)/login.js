@@ -36,7 +36,7 @@ const LoginScreen = () => {
       try {
         const token = await AsyncStorage.getItem("authToken");
         if (token) {
-          router.replace("/(tabs)/discover");
+          // router.replace("/(tabs)/discover");
         }
       } catch (error) {
         console.error("Error fetching user ID:", error);
