@@ -34,30 +34,30 @@ import { Slider, RangeSlider } from "@react-native-assets/slider";
 const API_URL = appConfig.API_URL;
 
 const MatchScreen = () => {
-  const router = useRouter();
-  const swiperRef = useRef(null);
-  const scrollViewRef = useRef(null);
+  const router = useRouter()
+  const swiperRef = useRef(null)
+  const scrollViewRef = useRef(null)
 
-  const [userId, setUserId] = useState(null);
-  const [potentialMatches, setPotentialMatches] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null); // Current user to display in the profile view
-  const [hoverSide, setHoverSide] = useState(null); // null, 'left', or 'right'
-  const [showFilters, setShowFilters] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
+  const [userId, setUserId] = useState(null)
+  const [potentialMatches, setPotentialMatches] = useState([])
+  const [currentUser, setCurrentUser] = useState(null) // Current user to display in the profile view
+  const [hoverSide, setHoverSide] = useState(null) // null, 'left', or 'right'
+  const [showFilters, setShowFilters] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
+  const [loading, setLoading] = useState(true)
+  
+  const [isFetchingMore, setIsFetchingMore] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  
   // Filter state
-  const [genderFilter, setGenderFilter] = useState("Girls");
-  const [distanceFilter, setDistanceFilter] = useState(40);
-  const [ageRange, setAgeRange] = useState([20, 28]);
-  const [userPreferences, setUserPreferences] = useState(null);
-
-  const MIN_AGE = 18;
-  const MAX_AGE = 100;
-  const MAX_DISTANCE = 500; // Maximum distance in km
+  const [genderFilter, setGenderFilter] = useState('Girls')
+  const [distanceFilter, setDistanceFilter] = useState(40)
+  const [ageRange, setAgeRange] = useState([20, 28])
+  const [userPreferences, setUserPreferences] = useState(null)
+  
+  const MIN_AGE = 18
+  const MAX_AGE = 100
+  const MAX_DISTANCE = 500 // Maximum distance in km
 
   // Temp state for filters
   const [tempAgeRange, setTempAgeRange] = useState(ageRange);
@@ -296,16 +296,13 @@ const MatchScreen = () => {
         // Update pagination state
         setPagination(paginationMetadata);
 
-        // Notify if no potential matches found on first page
-        if (data.data.length === 0 && page === 1) {
-          setPotentialMatches([]);
-          setCurrentUser(null);
-          Alert.alert(
-            "No matches found",
-            "Try adjusting your filters or come back later."
-          );
-          return;
-        }
+          // Notify if no potential matches found on first page
+          if (data.data.length === 0 && page === 1) {
+            setPotentialMatches([])
+            setCurrentUser(null)
+            console.log(("No matches found", "Try adjusting your filters or come back later."))
+            return
+          }
 
         const formattedUsers = data.data.map((user, index) => {
           // Preload images for the first 5 users
@@ -339,23 +336,19 @@ const MatchScreen = () => {
         }
 
         if (formattedUsers.length > 0 && page === 1) {
-          setCurrentUser(formattedUsers[0]);
+          setCurrentUser(formattedUsers[0])
         }
       } else {
-        Alert.alert("Error", "Failed to fetch potential matches");
+        console.log("Failed to fetch potential matches")
       }
     } catch (error) {
-      console.error("Error fetching potential matches:", error);
-      Alert.alert(
-        "Error",
-        "Failed to load potential matches. Please try again."
-      );
+      console.error("Error fetching potential matches:", error)
     } finally {
-      setLoading(false);
-      setIsFetchingMore(false);
-      setIsRefreshing(false);
+      setLoading(false)
+      setIsFetchingMore(false)
+      setIsRefreshing(false)
     }
-  };
+  }
 
   // Load more matches
   const loadMoreMatches = () => {
@@ -447,33 +440,31 @@ const MatchScreen = () => {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
 
-      const data = await response.json();
-      console.log("Update preferences response: ", data);
-
-      if (data && data.status === "success") {
+      const data = await response.json()
+      console.log('Update preferences response: ', data)
+        
+      if (data && data.status === 'success') {
         setUserPreferences({
           gender: genderFilter,
           maxDistance: distanceFilter,
           ageRange,
-        });
-        setPagination({
-          page: 1,
-          limit: 20,
-          total: 0,
-          hasNextPage: false,
-        });
-        debouncedFetchPotentialMatches(userId, 1, false); // Fetch new matches
-        toggleFiltersModal();
+        })
+        setPagination({ 
+          page: 1, 
+          limit: 20, 
+          total: 0, 
+          hasNextPage: false })
+        debouncedFetchPotentialMatches(userId, 1, false)  // Fetch new matches
+        toggleFiltersModal()
       } else {
-        Alert.alert("Error", "Failed to update preferences");
+        console.log('Failed to update preferences')
       }
     } catch (error) {
-      console.error("Error updating preferences:", error);
-      Alert.alert("Error", "Failed to update preferences. Please try again.");
+      console.error('Error updating preferences:', error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   // Handle like action - Call like API /match/:id/like
   const handleLike = async (swipedUserId) => {
@@ -540,15 +531,15 @@ const MatchScreen = () => {
     } else {
       setCurrentUser(null);
       if (!pagination.hasNextPage) {
-        setPotentialMatches([]);
-        Alert.alert(
+        setPotentialMatches([])
+        console.log(
           "No more matches",
           "We have shown you everyone that matches your preferences."
         );
-        checkForNewMatches();
+        checkForNewMatches()
       }
     }
-  };
+  }
 
   // Handle swipe
   const handleSwipe = (index, direction) => {
@@ -1097,8 +1088,8 @@ const MatchScreen = () => {
         </Modal>
       </ScrollView>
     </SafeAreaView>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -1514,6 +1505,6 @@ const styles = StyleSheet.create({
   noUsersIcon: {
     marginBottom: 20,
   },
-});
+})
 
 export default MatchScreen;
