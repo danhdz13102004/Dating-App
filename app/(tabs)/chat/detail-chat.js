@@ -86,10 +86,12 @@ const  DetailChat = () => {
     
           unsubscribe = onSnapshot(q, (querySnapshot) => {
             querySnapshot.forEach((doc) => {
-              console.log("🔥 New message:", doc.data());
+              // console.log("🔥 New message from detail:", doc.data());
 
               const firestoreData = doc.data();
               // console.log("🔥 Firestore data:", firestoreData);
+              // console.log(firestoreData.sender, id_partner);
+              if(firestoreData.sender != id_partner) return;
 
               // 🔁 Chuyển đổi dữ liệu sang định dạng giống API
               const newMsg = {
@@ -100,7 +102,7 @@ const  DetailChat = () => {
                 updatedAt: firestoreData.updatedAt?.toDate().toISOString() || firestoreData.createdAt?.toDate().toISOString() || new Date().toISOString(),
                 status: firestoreData.status || "sent",
                 sender: {
-                  _id: firestoreData.senderId
+                  _id: firestoreData.sender
                 }, // nếu lưu trong Firestore
                 __v: 0
               };
