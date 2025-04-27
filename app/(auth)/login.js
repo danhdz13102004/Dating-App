@@ -36,7 +36,7 @@ const LoginScreen = () => {
       try {
         const token = await AsyncStorage.getItem("authToken");
         if (token) {
-          router.replace("/(tabs)/discover");
+          // router.replace("/(tabs)/discover");
         }
       } catch (error) {
         console.error("Error fetching user ID:", error);
@@ -125,7 +125,7 @@ const LoginScreen = () => {
 
             if (checkResponse.ok && !checkData.data.isCompleted) {
               // User's information is not completed, navigate
-              router.replace("/(auth)/profile_detail");
+              router.replace("/(tabs)/match");
             } else {
               router.replace("/(tabs)/discover");
             }
@@ -139,7 +139,7 @@ const LoginScreen = () => {
           console.log("Login failed:", data);
           setGeneralError(
             data.message ||
-              "Login failed. Please check your credentials and try again."
+            "Login failed. Please check your credentials and try again."
           );
         }
       } catch (error) {

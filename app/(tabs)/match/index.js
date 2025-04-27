@@ -18,7 +18,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import appConfig from '../../../configs/config';
 import { jwtDecode } from 'jwt-decode';
-
+import { db } from "../../../firebaseConfig";
+import {
+  collection,
+  serverTimestamp,
+  addDoc,
+} from "firebase/firestore";
 
 const MatchCard = ({ name, age, imageUrl, onRemove, onLike }) => {
   return (
@@ -105,13 +110,14 @@ const MatchesScreen = () => {
       const id = await getUserId();
       if (!id) {
         setLoading(false);
+        setError('User ID không hợp lệ');
         return;
       }
 
       console.log('Fetching matches for userId:', id);
 
       // Chuẩn bị URL và options cho API request
-      const url = `${appConfig.API_URL}/conversation/match-requests`;
+      const url = `${appConfig.API_URL}/conversation/match-requests/${id}`;
       const options = {
         method: 'GET',
         headers: {
@@ -120,43 +126,59 @@ const MatchesScreen = () => {
         }
       };
 
-      // Nếu method là GET, thêm userId vào query params thay vì body
-      const finalUrl = `${url}/${id}`;
-
-      console.log('API Request URL:', finalUrl);
+      console.log('API Request URL:', url);
 
       // Gọi API
-      const response = await fetch(finalUrl, options);
+      const response = await fetch(url, options);
+
+              // Xử lý lỗi 404: không có dữ liệu
+    if (response.status === 404 && data.message === "Không có lời mời match nào") {
+                setMatches([]); // Không có matches nào
+                setError(null);  // Không cần thông báo lỗi, chỉ hiển thị "Không có ai phù hợp"
+    } else {
+                // throw new Error(`Server responded with status: ${response.status}`);
+    }
 
       // Kiểm tra response status
       if (!response.ok) {
+
         const errorText = await response.text();
         console.error('API error response:', errorText);
-        throw new Error(`Server responded with status: ${response.status}`);
-      }
+        // throw new Error(`Server responded with status: ${response.status}`);
+      
 
       // Parse response JSON
       const responseText = await response.text();
-      console.log('API Response preview:', responseText.substring(0, 100));
+      console.log('API Response preview:', responseText);
+      const data = await response.json(); // Chỉ đọc dữ liệu dưới dạng JSON
 
-      const data = JSON.parse(responseText);
 
-      // Xử lý dữ liệu trả về
-      if (data && data.data && Array.isArray(data.data)) {
-        console.log(`Received ${data.data.length} matches`);
-        setMatches(data.data);
+
       } else {
-        console.warn('API response format unexpected:', data);
-        setMatches([]);
+        // Parse response JSON
+        const data = await response.json(); // Chỉ đọc dữ liệu dưới dạng JSON
+        console.log('API Response preview:', JSON.stringify(data).substring(0, 100));
+
+        // Xử lý dữ liệu trả về
+        if (data && data.data && Array.isArray(data.data)) {
+          console.log(`Received ${data.data.length} matches`);
+          setMatches(data.data);
+        } else {
+          console.warn('API response format unexpected:', data);
+          setMatches([]);
+        }
       }
+    
     } catch (error) {
-      console.error('Error fetching matches:', error);
-      setError('Unable to load matches. Please try again later.');
-      setMatches([]);
+      // console.error('Error fetching matches:', error);
+      setError(null);
+      setMatches([]); // Xử lý khi có lỗi khác
     } finally {
       setLoading(false);
     }
   };
+
+
 
   // Hàm đổi trạng thái cuộc hội thoại thành "deleted" (xóa match)
   const handleRemoveMatch = async (id) => {
@@ -225,8 +247,55 @@ const MatchesScreen = () => {
     }
   };
 
+  const addNtfToDB = async (match)=>{
+
+    const ntfMatchForDB = {
+      content: `${match.receiver.name} has accepted your request`,
+      id_conversation: match._id, 
+      id_user: match.sender._id,  
+    };
+
+    const response = await fetch(`${appConfig.API_URL}/notification/add`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(ntfMatchForDB)
+    });
+
+    console.log(response.data);
+  }
+  const sendAcceptedMatch = async (match) => {
+    try {
+      console.log("🔎CHECK SEND MATCHES :",match.sender._id, match.receiver._id)
+      const acceptedMatchesSubcollectionRef = collection(
+        db,
+        `acceptedMatches/${match.sender._id}/acceptedMatches`,
+      );
+
+      const newAcceptedmatch = {
+        content: `${match.receiver.name} has accepted your request`,
+        id_conversation: match._id, 
+        id_user: match.sender._id,
+        createdAt: serverTimestamp(),
+        sender: {
+          _id: match.receiver._id,
+          avatar: match.receiver.avatar,
+        }
+      };
+      
+      await addDoc(acceptedMatchesSubcollectionRef, newAcceptedmatch);
+      await addNtfToDB(match);
+
+      console.log("✅ Accepted match đã được gửi!");
+    } catch (error) {
+      console.error("❌ Gửi Accepted match thất bại:", error);
+    }
+  };
   // Hàm đổi trạng thái cuộc hội thoại thành "active" (like match)
-  const handleLikeMatch = async (id) => {
+  const handleLikeMatch = async (match) => {
+    id = match._id || match.id
     if (!id) {
       console.error('No match ID provided');
       return;
@@ -245,8 +314,11 @@ const MatchesScreen = () => {
       // Hiển thị loading state nếu cần
       setLoading(true);
 
+      //FireBase
+      sendAcceptedMatch(match);
+
       // Gọi API để đổi trạng thái
-      const response = await fetch(`${appConfig.API_URL}/conversation/${id}/active`, {
+      const response = await fetch(`${appConfig.API_URL}/conversation/${match._id || match.id}/active`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -317,7 +389,7 @@ const MatchesScreen = () => {
         </Text>
       </View>
 
-      {error ? (
+      {error && matches.length === 0 ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={fetchMatches}>
@@ -327,9 +399,13 @@ const MatchesScreen = () => {
       ) : (
         <ScrollView
           style={styles.matchesList}
-          contentContainerStyle={matches.length === 0 ? { flex: 1, justifyContent: 'center' } : {}}
+          contentContainerStyle={
+            matches.length === 0
+              ? { flex: 1, justifyContent: 'center', alignItems: 'center' }
+              : {}
+          }
         >
-          {matches && matches.length > 0 ? (
+          {matches.length > 0 ? (
             <View style={styles.matchesGrid}>
               {matches.map((match) => (
                 <MatchCard
@@ -337,17 +413,19 @@ const MatchesScreen = () => {
                   name={match.sender?.name || 'Unknown'}
                   age={match.sender?.age || '?'}
                   imageUrl={match.sender?.avatar || 'https://picsum.photos/200'}
-
                   onRemove={() => handleRemoveMatch(match._id || match.id)}
-                  onLike={() => handleLikeMatch(match._id || match.id)}
+                  onLike={() => handleLikeMatch(match)}
                 />
               ))}
             </View>
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No matches available</Text>
+              <Text style={styles.emptyText}>Không có ai phù hợp lúc này</Text>
+              <Text style={styles.suggestionText}>
+                Hãy thử làm mới hoặc cập nhật hồ sơ để thu hút nhiều người hơn!
+              </Text>
               <TouchableOpacity style={styles.retryButton} onPress={fetchMatches}>
-                <Text style={styles.retryButtonText}>Refresh</Text>
+                <Text style={styles.retryButtonText}>Làm mới</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -355,6 +433,7 @@ const MatchesScreen = () => {
       )}
     </SafeAreaView>
   );
+
 };
 
 const styles = StyleSheet.create({
@@ -496,6 +575,41 @@ const styles = StyleSheet.create({
     width: 1,
     backgroundColor: '#eee',
   },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyImage: {
+    width: 180,
+    height: 180,
+    marginBottom: 20,
+  },
+  emptyText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginVertical: 10,
+  },
+  retryButton: {
+    marginTop: 15,
+    backgroundColor: '#FF6B81',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+
 });
 
 export default MatchesScreen;
