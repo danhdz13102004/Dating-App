@@ -110,7 +110,7 @@ const NotificationsScreen = () => {
         if (token) {
           const decoded = jwtDecode(token);
           const uid = decoded.userId;
-          setUserId(uid);
+          // setUserId(uid);
     
           const q = query(
             collection(db, `acceptedMatches/${uid}/acceptedMatches`),

@@ -131,13 +131,21 @@ const MatchesScreen = () => {
       // Gọi API
       const response = await fetch(url, options);
 
+              // Xử lý lỗi 404: không có dữ liệu
+    if (response.status === 404 && data.message === "Không có lời mời match nào") {
+                setMatches([]); // Không có matches nào
+                setError(null);  // Không cần thông báo lỗi, chỉ hiển thị "Không có ai phù hợp"
+    } else {
+                // throw new Error(`Server responded with status: ${response.status}`);
+    }
+
       // Kiểm tra response status
       if (!response.ok) {
 
         const errorText = await response.text();
         console.error('API error response:', errorText);
-        throw new Error(`Server responded with status: ${response.status}`);
-      }
+        // throw new Error(`Server responded with status: ${response.status}`);
+      
 
       // Parse response JSON
       const responseText = await response.text();
@@ -146,13 +154,6 @@ const MatchesScreen = () => {
 
 
 
-        // Xử lý lỗi 404: không có dữ liệu
-        if (response.status === 404 && data.message === "Không có lời mời match nào") {
-          setMatches([]); // Không có matches nào
-          setError(null);  // Không cần thông báo lỗi, chỉ hiển thị "Không có ai phù hợp"
-        } else {
-          throw new Error(`Server responded with status: ${response.status}`);
-        }
       } else {
         // Parse response JSON
         const data = await response.json(); // Chỉ đọc dữ liệu dưới dạng JSON
@@ -167,10 +168,10 @@ const MatchesScreen = () => {
           setMatches([]);
         }
       }
-
+    
     } catch (error) {
-      console.error('Error fetching matches:', error);
-      setError('Unable to load matches. Please try again later.');
+      // console.error('Error fetching matches:', error);
+      setError(null);
       setMatches([]); // Xử lý khi có lỗi khác
     } finally {
       setLoading(false);
