@@ -157,7 +157,7 @@ const MessagesScreen = () => {
                 name: _partner.name,
                 partnerId: _partner._id,
                 avatar: _partner.avatar,
-                message: conversation.last_message,
+                message: conversation.last_message ? conversation.last_message : "Hãy gửi tin nhắn để bắt đầu!",
                 time: time_format(conversation.updatedAt),
                 unread: conversation.unread
             };
