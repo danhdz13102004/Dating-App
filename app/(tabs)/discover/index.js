@@ -35,15 +35,15 @@ const API_URL = appConfig.API_URL
 
 const MatchScreen = () => {
     const router = useRouter()
-    const swiperRef = useRef(null);
-    const scrollViewRef = useRef(null);
+    const swiperRef = useRef(null)
+    const scrollViewRef = useRef(null)
 
     const [userId, setUserId] = useState(null)
     const [potentialMatches, setPotentialMatches] = useState([])
     const [currentUser, setCurrentUser] = useState(null) // Current user to display in the profile view
-    const [hoverSide, setHoverSide] = useState(null); // null, 'left', or 'right'
-    const [showFilters, setShowFilters] = useState(false);
-    const [showProfile, setShowProfile] = useState(false);
+    const [hoverSide, setHoverSide] = useState(null) // null, 'left', or 'right'
+    const [showFilters, setShowFilters] = useState(false)
+    const [showProfile, setShowProfile] = useState(false)
     const [loading, setLoading] = useState(true)
     
     const [isFetchingMore, setIsFetchingMore] = useState(false)
@@ -296,7 +296,7 @@ const MatchScreen = () => {
           if (data.data.length === 0 && page === 1) {
             setPotentialMatches([])
             setCurrentUser(null)
-            Alert.alert("No matches found", "Try adjusting your filters or come back later.")
+            console.log(("No matches found", "Try adjusting your filters or come back later."))
             return
           }
 
@@ -330,12 +330,10 @@ const MatchScreen = () => {
             setCurrentUser(formattedUsers[0])
           }
         } else {
-          Alert.alert("Error", "Failed to fetch potential matches")
+          console.log("Failed to fetch potential matches")
         }
-
       } catch (error) {
         console.error("Error fetching potential matches:", error)
-        Alert.alert("Error", "Failed to load potential matches. Please try again.")
       } finally {
         setLoading(false)
         setIsFetchingMore(false)
@@ -449,11 +447,10 @@ const MatchScreen = () => {
           debouncedFetchPotentialMatches(userId, 1, false)  // Fetch new matches
           toggleFiltersModal()
         } else {
-          Alert.alert('Error', 'Failed to update preferences')
+          console.log('Failed to update preferences')
         }
       } catch (error) {
         console.error('Error updating preferences:', error)
-        Alert.alert('Error', 'Failed to update preferences. Please try again.')
       } finally {
         setLoading(false)
       }
@@ -523,7 +520,7 @@ const MatchScreen = () => {
         setCurrentUser(null)
         if (!pagination.hasNextPage) {
           setPotentialMatches([])
-          Alert.alert('No more matches', 'We have shown you everyone that matches your preferences.')
+          console.log('No more matches', 'We have shown you everyone that matches your preferences.')
           checkForNewMatches()
         }
       }
@@ -1375,6 +1372,6 @@ const styles = StyleSheet.create({
     noUsersIcon: {
       marginBottom: 20,
     }
-});
+})
 
 export default MatchScreen;
