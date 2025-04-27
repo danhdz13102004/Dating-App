@@ -14,6 +14,7 @@ import {
     Dimensions,
     ActivityIndicator,
     Animated,
+    RefreshControl,
 } from "react-native";
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
@@ -59,7 +60,7 @@ const MessagesScreen = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
-
+    const [refreshing, setRefreshing] = useState(false);
 
     const time_format = (isoTime) => {
         const time = Math.max(0, Math.floor((new Date() - new Date(isoTime)) / 1000));
@@ -100,53 +101,61 @@ const MessagesScreen = () => {
     };
 
     // Fetch user data
-    useEffect(() => {
-        const fetchUserData = async () => {
-            try {
-                const token = await AsyncStorage.getItem("authToken");
-                if (token) {
-                    const decoded = jwtDecode(token);
-                    const uid = decoded.userId;
-                    setUserId(uid);
-                    
-                    // Fetch current user data
-                    const userResponse = await fetch(
-                        `${appConfig.API_URL}/user/profile/${uid}`,
-                        {
-                            method: "GET",
-                            headers: {
-                                "Content-Type": "application/json",
-                            },
-                        }
-                    );
-                    const userData = await userResponse.json();
-                    console.log("📥 User fetched from API:", userData);
-                    setCurrentUser(userData.data);
-                    
-                    // Fetch user's newest post
-                    await fetchMyNewestPost(uid);
-                    
-                    // Fetch conversations
-                    const conversationResponse = await fetch(
-                        `${appConfig.API_URL}/user/conversation/${uid}`,
-                        {
-                            method: "GET",
-                            headers: {
-                                "Content-Type": "application/json",
-                            },
-                        }
-                    );
-                    const conversationData = await conversationResponse.json();
-                    // console.log("📥 Conversation fetched from API:", conversationData);
-                    setMessagesFromConver(conversationData["data"], uid);
-                    setActivitiesFromConver(conversationData["data"], uid);
-                }
-            } catch (error) {
-                console.error("❌ Error fetching data:", error);
+    const fetchUserData = async () => {
+        try {
+            setRefreshing(true);
+            const token = await AsyncStorage.getItem("authToken");
+            if (token) {
+                const decoded = jwtDecode(token);
+                const uid = decoded.userId;
+                setUserId(uid);
+                
+                // Fetch current user data
+                const userResponse = await fetch(
+                    `${appConfig.API_URL}/user/profile/${uid}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                    }
+                );
+                const userData = await userResponse.json();
+                console.log("📥 User fetched from API:", userData);
+                setCurrentUser(userData.data);
+                
+                // Fetch user's newest post
+                await fetchMyNewestPost(uid);
+                
+                // Fetch conversations
+                const conversationResponse = await fetch(
+                    `${appConfig.API_URL}/user/conversation/${uid}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                    }
+                );
+                const conversationData = await conversationResponse.json();
+                // console.log("📥 Conversation fetched from API:", conversationData);
+                setMessagesFromConver(conversationData["data"], uid);
+                setActivitiesFromConver(conversationData["data"], uid);
             }
-        };
+        } catch (error) {
+            console.error("❌ Error fetching data:", error);
+        } finally {
+            setRefreshing(false);
+        }
+    };
+
+    useEffect(() => {
         fetchUserData();
     }, []);
+
+    const onRefresh = () => {
+        fetchUserData();
+    };
 
     const setMessagesFromConver = (conversations, uid) => {
         let _message = [];
@@ -683,6 +692,14 @@ const MessagesScreen = () => {
                     keyExtractor={(item) => item.id}
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.activitiesList}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            colors={[Colors.primaryColor]}
+                            tintColor={Colors.primaryColor}
+                        />
+                    }
                 />
             </View>
 
@@ -693,6 +710,14 @@ const MessagesScreen = () => {
                     renderItem={renderMessage}
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={styles.messagesList}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            colors={[Colors.primaryColor]}
+                            tintColor={Colors.primaryColor}
+                        />
+                    }
                 />
             </View>
 

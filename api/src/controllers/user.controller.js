@@ -132,8 +132,10 @@ class UserController {
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      const isCompleted =
+      let isCompleted =
         user.name && user.birthday && user.gender && user.hobbies;
+      
+      isCompleted = !!isCompleted;
 
       console.log("[P]::IsCompleted::", isCompleted);
       return res.status(200).json({
