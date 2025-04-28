@@ -281,9 +281,9 @@ const ProfileScreen = () => {
                   source={
                     userData.avatar
                       ? { uri: userData.avatar }
-                      : require('../../../assets/images/avatar_sample.jpg')
+                      : require('../../../assets/images/default-img.jpg')
                   }
-                  defaultSource={require('../../../assets/images/avatar_sample.jpg')}
+                  defaultSource={require('../../../assets/images/default-img.jpg')}
                   style={styles.profileImage}
                 />
                 {updatingAvatar && (
