@@ -1,197 +1,551 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
-import { jwtDecode } from 'jwt-decode';
+import React, { useState, useEffect, useCallback } from 'react'
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, SafeAreaView, TouchableOpacity, Image, Switch, Alert } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { router, useFocusEffect } from 'expo-router'
+import { jwtDecode } from 'jwt-decode'
+import { Ionicons, MaterialIcons } from '@expo/vector-icons'
+import { Colors } from '../../../constants/Colors'
+import { LinearGradient } from 'expo-linear-gradient'
+import appConfigs from '../../../configs/config'
+import * as ImagePicker from 'expo-image-picker'
 
-const Login = () => {
-    const [userData, setUserData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+const API_URL = appConfigs.API_URL
 
-    // Kiểm tra token và lấy thông tin người dùng khi component được load
-    useEffect(() => {
-        const checkAuth = async () => {
-            try {
-                // Lấy token từ AsyncStorage
-                const token = await AsyncStorage.getItem('authToken');
-                
-                if (!token) {
-                    // Không có token - chuyển hướng về trang đăng nhập
-                    console.log('No token found, redirecting to login');
-                    router.replace('/(auth)/login');
-                    return;
-                }
+const ProfileScreen = () => {
+  // Initialize state variables
+  const [userData, setUserData] = useState({
+    name: '',
+    age: '',
+    avatar: '',
+    description: '',
+  })
+  const [userId, setUserId] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [notificationEnabled, setNotificationEnabled] = useState(true)
+  const [updatingAvatar, setUpdatingAvatar] = useState(false)
 
-                console.log('Token found in Bio screen');
-                
-                // Thử decode token để lấy thông tin
-                try {
-                    // Sử dụng thư viện jwt-decode
-                    const decoded = jwtDecode(token);
-                    console.log('Decoded token:', decoded);
-                    setUserData(decoded);
-                } catch (decodeError) {
-                    console.error('Error decoding token:', decodeError);
-                    setError('Không thể giải mã token. Vui lòng đăng nhập lại.');
-                    setTimeout(() => {
-                        AsyncStorage.removeItem('authToken');
-                        router.replace('/(auth)/login');
-                    }, 2000);
-                }
-            } catch (error) {
-                console.error('Authentication check error:', error);
-                setError('Đã xảy ra lỗi. Vui lòng thử lại.');
-            } finally {
-                setLoading(false);
-            }
-        };
+  // Function calculate age from birthday
+  const calculateAge = (birthday) => {
+    const today = new Date()
+    const birthdayDateObject = new Date(birthday)
+    let age = today.getFullYear() - birthdayDateObject.getFullYear()
+    const monthDiff = today.getMonth() - birthdayDateObject.getMonth()
 
-        checkAuth();
-    }, []);
-
-    // Hiển thị màn hình loading khi đang kiểm tra xác thực
-    if (loading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#0000ff" />
-                <Text style={styles.loadingText}>Đang tải thông tin...</Text>
-            </View>
-        );
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthdayDateObject.getDate())) {
+      --age
     }
 
-    // Hiển thị lỗi nếu có
-    if (error) {
-        return (
-            <View style={styles.container}>
-                <Text style={styles.errorText}>{error}</Text>
-            </View>
-        );
-    }
+    return age
+  }
 
+  const fetchUserId = async () => {
+    try {
+      const token = await AsyncStorage.getItem('authToken')
+      if (token) {
+        const decoded = jwtDecode(token)
+        setUserId(decoded.userId)
+        return decoded.userId
+      } else {
+        console.log('No token found, redirecting to login')
+        router.replace('/(auth)/login')
+        return null
+      }
+    } catch (error) {
+      console.error("Error fetching user ID:", error)
+      return null
+    }
+  }
+
+  // Fetch user data from the server
+  const fetchUserData = async (userId) => {
+    try {
+      const URL = `${API_URL}/profile/${userId}`
+      console.log('Fetching user data from:', URL)
+
+      const response = await fetch(URL, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch user data: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      if (result.status === 'success' && result.data) {
+        const { name, birthday, avatar, description } = result.data
+        setUserData({
+          name,
+          age: calculateAge(birthday),
+          avatar: avatar || '../../../assets/images/placeholder_avatar.png',
+          description,
+        })
+      }
+      
+      setLoading(false)
+    } catch (error) {
+      console.error('Error fetching user data:', error)
+      setLoading(false)
+    }
+  }
+
+  // Navigate to profile edit page
+  const navigateToEditProfile = () => {
+    router.push('/(tabs)/bio/edit-profile')
+  }
+
+  // Navigate to location settings
+  const navigateToLocation = () => {
+    router.push('/(tabs)/bio/location')
+  }
+
+  // Logout function - Delete user token and redirect to login page
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('authToken')
+      router.replace('/(auth)/login')
+    } catch (error) {
+      console.error('Error logging out:', error)
+    }
+  }
+  
+  // Handle avatar selection and upload
+  const handleAvatarUpdate = async () => {
+    try {
+      // Request permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+      
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow access to your photo library to update your avatar')
+        return
+      }
+
+      // Open image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      })
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const selectedImage = result.assets[0].uri
+        // Upload to Cloudinary
+        await uploadAvatarToCloudinary(selectedImage)
+      }
+    } catch (error) {
+      console.error('Error picking image:', error)
+      Alert.alert('Error', 'Failed to pick image. Please try again.')
+    }
+  }
+
+  // Upload avatar to Cloudinary
+  // imageUri: image path from user device
+  const uploadAvatarToCloudinary = async (imageUri) => {
+    try {
+      setUpdatingAvatar(true)
+      
+      // Create form data for upload
+      const formData = new FormData() // multipart/form-data
+      const filename = imageUri.split('/').pop()
+      const match = /\.(\w+)$/.exec(filename) // File extension .jpg, .png, .jpeg,..
+      const type = match ? `image/${match[1]}` : 'image'  // Image type image/jpg, image/png
+      
+      formData.append('file', {
+        uri: imageUri,
+        name: filename,
+        type,
+      })
+      
+      formData.append('upload_preset', process.env.EXPO_PUBLIC_CLOUDINARY_PRESET || 'dating_app_preset')
+
+      // Upload to Cloudinary
+      const cloudinaryUrl = process.env.EXPO_PUBLIC_CLOUDINARY_ENDPOINT || 'https://api.cloudinary.com/v1_1/your_cloud_name/upload'
+      const response = await fetch(cloudinaryUrl, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      
+      const data = await response.json()
+      
+      if (data.secure_url) {
+        // Update avatar in database with the Cloudinary URL
+        await updateAvatarInDatabase(data.secure_url)
+      } else {
+        throw new Error('Failed to upload image to Cloudinary')
+      }
+    } catch (error) {
+      console.error('Error uploading avatar:', error)
+    } finally {
+      setUpdatingAvatar(false)
+    }
+  }
+
+  const updateAvatarInDatabase = async (avatarUrl) => {
+    try {
+      const response = await fetch(`${API_URL}/profile/update-avatar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          avatarUrl,
+        }),
+      })
+
+      const result = await response.json()
+      
+      if (result.status === 'success') {
+        // Update local user data with new avatar
+        setUserData(prevData => ({
+          ...prevData,
+          avatar: avatarUrl,
+        }))
+        Alert.alert('Success', 'Avatar updated successfully')
+      } else {
+        Alert.alert('Error', result.message || 'Failed to update avatar')
+      }
+    } catch (error) {
+      console.error('Error updating avatar in database:', error)
+    }
+  }
+
+  // Fetch user ID when the component mounts
+  // useEffect(() => {
+  //   const loadUserData = async () => {
+  //     const userId = await fetchUserId()
+  //     if (userId) {
+  //       // Fetch user data once
+  //       fetchUserData(userId)
+  //     }
+  //   }
+
+  //   loadUserData()
+  // }, [])
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadUserData = async () => {
+        setLoading(true)
+        const userId = await fetchUserId()
+        if (userId) {
+          await fetchUserData(userId)
+        }
+      }
+      loadUserData()
+    }, [])
+  )
+
+  if (loading) {
     return (
-        <ScrollView style={styles.scrollView}>
-            <View style={styles.container}>
-                <Text style={styles.title}>Thông tin người dùng</Text>
-                
-                {userData && (
-                    <View style={styles.userInfoContainer}>
-                        <Text style={styles.userInfoLabel}>ID Người dùng:</Text>
-                        <Text style={styles.userInfoValue}>{userData.userId || 'Không tìm thấy ID'}</Text>
-                        
-                        <View style={styles.infoSection}>
-                            <Text style={styles.sectionTitle}>Thông tin JWT Token</Text>
-                            <Text style={styles.infoText}>
-                                <Text style={styles.infoLabel}>Thời gian tạo (iat): </Text>
-                                {new Date(userData.iat * 1000).toLocaleString()}
-                            </Text>
-                            <Text style={styles.infoText}>
-                                <Text style={styles.infoLabel}>Thời gian hết hạn (exp): </Text>
-                                {new Date(userData.exp * 1000).toLocaleString()}
-                            </Text>
-                        </View>
-                        
-                        <View style={styles.noteSection}>
-                            <Text style={styles.sectionTitle}>Lưu ý</Text>
-                            <Text style={styles.noteText}>
-                                Token JWT hiện tại chỉ chứa ID người dùng. Để hiển thị thêm thông tin cá nhân 
-                                chi tiết (như tên, email, bio), bạn cần lấy thêm dữ liệu từ API hoặc bổ sung 
-                                thông tin vào JWT payload.
-                            </Text>
-                        </View>
-                    </View>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primaryColor} />
+        <Text style={styles.loadingText}>Loading profile...</Text>
+      </View>
+    )
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#FF4D67" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Profile</Text>
+          <TouchableOpacity style={styles.menuButton}>
+            <Ionicons name="menu-outline" size={24} color="#FF4D67" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Profile view */}
+        <View style={styles.profileContainer}>
+          <View style={styles.profileImageContainer}>
+            <LinearGradient
+              colors={[Colors.primaryColor, '#FF758C', Colors.secondaryColor, '#FF9A8B']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.gradientAvatarBorder}
+            >
+              <View style={styles.profileAvatarWrapper}>
+                <Image
+                  source={
+                    userData.avatar
+                      ? { uri: userData.avatar }
+                      : require('../../../assets/images/avatar_sample.jpg')
+                  }
+                  defaultSource={require('../../../assets/images/avatar_sample.jpg')}
+                  style={styles.profileImage}
+                />
+                {updatingAvatar && (
+                  <View style={styles.avatarLoadingOverlay}>
+                    <ActivityIndicator size="large" color="#ffffff" />
+                  </View>
                 )}
-                
-                {!userData && (
-                    <Text style={styles.noDataText}>Không thể tải thông tin người dùng</Text>
-                )}
+              </View>
+            </LinearGradient>
+            <TouchableOpacity style={styles.editImageButton} onPress={handleAvatarUpdate} disabled={updatingAvatar}>
+              <MaterialIcons name="edit" size={20} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.nameAgeContainer}>
+            <Text style={styles.name}>{userData.name},</Text>
+            <Text style={styles.age}>{userData.age}</Text>
+          </View>
+          
+          <Text style={styles.description}>{userData.description}</Text>
+
+          {/* Divider between Profile & Functionalities */}
+          <LinearGradient 
+            style={styles.divider}
+            colors={['transparent', Colors.primaryColor, Colors.secondaryColor, 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          />
+        </View>
+
+        {/* Functionalities & Settings */}
+        <View style={styles.settingsContainer}>
+          {/* Edit profile */}
+          <TouchableOpacity style={styles.settingItem} onPress={navigateToEditProfile}>
+            <View style={styles.settingIconContainer}>
+              <Ionicons name="person-outline" size={20} color="#FF4D67" />
             </View>
-        </ScrollView>
-    );
-};
+            <Text style={styles.settingText}>Edit profile</Text>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          </TouchableOpacity>
+
+          <View style={styles.settingItem}>
+            <View style={styles.settingIconContainer}>
+              <Ionicons name="notifications-outline" size={20} color="#FF4D67" />
+            </View>
+            <Text style={styles.settingText}>Thông báo</Text>
+            <Switch
+              value={notificationEnabled}
+              onValueChange={setNotificationEnabled}
+              trackColor={{ false: '#D1D1D6', true: '#FFCDD5' }}
+              thumbColor={notificationEnabled ? '#FF4D67' : '#f4f3f4'}
+            />
+          </View>
+
+          <TouchableOpacity style={styles.settingItem} onPress={navigateToLocation}>
+            <View style={styles.settingIconContainer}>
+              <Ionicons name="location-outline" size={20} color="#FF4D67" />
+            </View>
+            <Text style={styles.settingText}>Vị trí</Text>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingItem} onPress={() => {}}>
+            <View style={styles.settingIconContainer}>
+              <Ionicons name="link-outline" size={20} color="#FF4D67" />
+            </View>
+            <Text style={styles.settingText}>Tài khoản liên kết</Text>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingItem} onPress={() => {}}>
+            <View style={styles.settingIconContainer}>
+              <Ionicons name="help-circle-outline" size={20} color="#FF4D67" />
+            </View>
+            <Text style={styles.settingText}>Trung tâm trợ giúp</Text>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          </TouchableOpacity>
+
+          {/* Logout Section */}
+          <TouchableOpacity style={styles.settingItem} onPress={handleLogout}>
+            <View style={styles.settingIconContainer}>
+              <Ionicons name="log-out-outline" size={20} color="#FF4D67" />
+            </View>
+            <Text style={styles.settingText}>Logout</Text>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  )
+}
 
 const styles = StyleSheet.create({
-    scrollView: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
-    container: {
-        flex: 1,
-        padding: 20,
-        backgroundColor: '#fff',
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    loadingText: {
-        marginTop: 10,
-        fontSize: 16,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        textAlign: 'center',
-    },
-    errorText: {
-        color: 'red',
-        fontSize: 16,
-        textAlign: 'center',
-    },
-    userInfoContainer: {
-        backgroundColor: '#f5f5f5',
-        padding: 15,
-        borderRadius: 10,
-    },
-    userInfoLabel: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginTop: 10,
-    },
-    userInfoValue: {
-        fontSize: 16,
-        marginBottom: 10,
-        color: '#007bff',
-        fontWeight: '500',
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginVertical: 10,
-    },
-    infoSection: {
-        marginTop: 20,
-        backgroundColor: '#eef6ff',
-        padding: 12,
-        borderRadius: 8,
-    },
-    noteSection: {
-        marginTop: 20,
-        backgroundColor: '#fff4e5',
-        padding: 12,
-        borderRadius: 8,
-    },
-    infoText: {
-        fontSize: 14,
-        lineHeight: 22,
-        marginBottom: 5,
-    },
-    infoLabel: {
-        fontWeight: '500',
-    },
-    noteText: {
-        fontSize: 14,
-        lineHeight: 20,
-        color: '#664d03',
-    },
-    noDataText: {
-        textAlign: 'center',
-        fontSize: 16,
-        color: '#888',
-        marginTop: 20,
-    }
-});
+  container: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.light.background,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: Colors.primaryColor,
+  },
 
-export default Login;
+  /**
+   * Header Styles
+   */
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  backButton: {
+    padding: 4,
+  },
+  menuButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.primaryColor,
+  },
+
+  /**
+   * Profile Styles
+   */
+  profileContainer: {
+    marginBottom: 20,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  profileImageContainer: {
+    position: 'relative',
+    marginBottom: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gradientAvatarBorder: {
+    width: 174,
+    height: 174,
+    aspectRatio: 1,
+    borderRadius: 90,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'FFF',
+    shadowColor: '#FD5564',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  profileAvatarWrapper: {
+    borderRadius: 100,
+    position: 'relative',
+  },
+  profileImage: {
+    width: 160,
+    height: 160,
+    aspectRatio: 1,
+    borderRadius: 80
+  },
+  avatarLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editImageButton: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    backgroundColor: '#FF4D67',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFF',
+  },
+  nameAgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginRight: 8,
+  },
+  age: {
+    fontSize: 22,
+    color: '#333',
+  },
+  description: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+
+  /**
+   * Gradient Divider Addtional Styles
+   */
+  divider: {
+    width: '90%',
+    height: 1.5,
+    marginVertical: 12,
+    alignSelf: 'center',
+  },
+
+  /**
+   * Functionality & Settings Styles 
+   */
+  settingsContainer: {
+    backgroundColor: '#FFF8F9',
+    borderRadius: 15,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  settingIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFE0E5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  settingText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+  },
+})
+
+export default ProfileScreen

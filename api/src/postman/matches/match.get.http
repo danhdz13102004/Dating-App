@@ -1,6 +1,6 @@
 @url=http://localhost:6969/v1/api
 
 ## Potential Matches
-GET {{url}}/match/680287364c9a55b68d6f38c6/potential-matches
+GET {{url}}/match/680cfdbaf07017ab2b84249d/potential-matches
 Content-Type: application/json
 

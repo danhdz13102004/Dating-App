@@ -1,0 +1,10 @@
+@url=http://localhost:6969/v1/api
+
+## Update User Avatar
+POST {{url}}/profile/update-avatar
+Content-Type: application/json
+
+{
+    "userId": "680cfdbaf07017ab2b84249d",
+    "avatarUrl": "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg"
+}

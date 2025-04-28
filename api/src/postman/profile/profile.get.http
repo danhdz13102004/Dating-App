@@ -1,0 +1,6 @@
+@url=http://localhost:6969/v1/api
+
+## Profile Get User Details
+GET {{url}}/profile/680cfdbaf07017ab2b842490
+Content-Type: application/json
+
