@@ -642,6 +642,62 @@ const EditProfileScreen = () => {
     return validIndices.indexOf(currentPhotoIndex) + 2 // +2 because avatar is first (index 1)
   }
 
+  // Add the uploadImageToCloudinary function
+  const uploadImageToCloudinary = async (uri) => {
+    try {
+      console.log('Starting Cloudinary upload for:', uri)
+      
+      // Create form data for the image
+      const formData = new FormData()
+      
+      // Get filename from URI
+      const uriParts = uri.split('/')
+      const fileName = uriParts[uriParts.length - 1]
+      
+      // Get file type (extension)
+      const fileType = fileName.split('.').pop()
+      
+      // Append the image to form data
+      formData.append('file', {
+        uri: uri,
+        name: fileName,
+        type: `image/${fileType}`
+      })
+      
+      // Add upload preset (required by Cloudinary for unsigned uploads)
+      formData.append('upload_preset', CLOUDINARY_PRESET)
+      
+      console.log('Sending to Cloudinary with preset:', CLOUDINARY_PRESET)
+      
+      // Send the request to Cloudinary
+      const response = await fetch(CLOUDINARY_ENDPOINT, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Cloudinary upload failed:', errorText)
+        throw new Error(`Cloudinary upload failed: ${response.status}`)
+      }
+      
+      // Parse the response
+      const data = await response.json()
+      
+      console.log('Cloudinary upload successful, received URL:', data.secure_url)
+      
+      // Return the secure URL of the uploaded image
+      return data.secure_url
+    } catch (error) {
+      console.error('Error uploading image to Cloudinary:', error)
+      throw new Error(`Failed to upload image: ${error.message}`)
+    }
+  }
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
