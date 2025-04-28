@@ -25,4 +25,5 @@ export const Colors = Object.freeze({
     tabIconSelected: tintColorDark,
   }),
   primaryColor: '#E94057',
+  secondaryColor: '#FD5564'
 })

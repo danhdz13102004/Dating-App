@@ -16,4 +16,6 @@ router.use('/notification', require('./notification.route'))
 
 router.use('/post', require('./post.route'))
 
+router.use('/profile', require('./profile.route'))
+
 module.exports = router
