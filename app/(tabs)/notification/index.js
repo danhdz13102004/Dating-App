@@ -169,7 +169,7 @@ const NotificationsScreen = () => {
               const firestoreData = doc.data();
               const storedLastNotifyIdInNotifyTab = await AsyncStorage.getItem('lastNotifyIdInNotifyTab');
 
-              // Check if this is actually a new message
+              // Check if this is actually a new notify
               const isNewNptify = doc.id !== storedLastNotifyIdInNotifyTab;
               if (isNewNptify) {
                 const newNtf = {
@@ -180,7 +180,7 @@ const NotificationsScreen = () => {
                   url: firestoreData.sender.avatar,
                 };
                 
-                // Update the last message ID in storage
+                // Update the last notify ID in notify tabs in storage
                 await AsyncStorage.setItem('lastNotifyIdInNotifyTab', doc.id);
 
                 setNotifications(prev => {

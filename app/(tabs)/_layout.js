@@ -133,7 +133,7 @@ export default function Layout() {
                 const firestoreData = doc.data();
                 const storedLastNotifyId = await AsyncStorage.getItem('lastNotifyId');
 
-                  // Check if this is actually a new message
+                  // Check if this is actually a new notify
                 const isNewNptify = doc.id !== storedLastNotifyId;
                 if (isNewNptify) {
                   showNotification(firestoreData.content || "New notify received!");
