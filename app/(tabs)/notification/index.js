@@ -15,7 +15,7 @@ import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
 import { useRouter } from 'expo-router';
-import appConfig from '../../../configs/config'; 
+import appConfig from '../../../configs/config';
 import { db } from "../../../firebaseConfig";
 import {
   onSnapshot,
@@ -30,42 +30,42 @@ const time_format = (isoTime) => {
   const now = new Date();
   const date = new Date(isoTime);
   const secondsDiff = Math.floor((now - date) / 1000);
-  
+
   // Less than a minute
   if (secondsDiff < 60) {
     return `${secondsDiff}s ago`;
   }
-  
+
   // Less than an hour
   const minutesDiff = Math.floor(secondsDiff / 60);
   if (minutesDiff < 60) {
     return `${minutesDiff}m ago`;
   }
-  
+
   // Less than a day
   const hoursDiff = Math.floor(minutesDiff / 60);
   if (hoursDiff < 24) {
     return `${hoursDiff}h ago`;
   }
-  
+
   // Less than a week
   const daysDiff = Math.floor(hoursDiff / 24);
   if (daysDiff < 7) {
     return `${daysDiff}d ago`;
   }
-  
+
   // Less than a month (approximately 30 days)
   if (daysDiff < 30) {
     const weeksDiff = Math.floor(daysDiff / 7);
     return `${weeksDiff}w ago`;
   }
-  
+
   // Less than a year
   const monthsDiff = Math.floor(daysDiff / 30);
   if (monthsDiff < 12) {
     return `${monthsDiff}mo ago`;
   }
-  
+
   // More than a year
   const yearsDiff = Math.floor(monthsDiff / 12);
   return `${yearsDiff}y ago`;
@@ -112,12 +112,12 @@ const NotificationsScreen = () => {
       const id_user = decoded?.userId;
       console.log('User ID:', id_user);
       const url = `${appConfig.API_URL}/user/notifications/${id_user}`;
-      console.log('Fetching notifications from:', url);   
+      console.log('Fetching notifications from:', url);
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-        } 
+        }
       });
 
       if (!response.ok) {
@@ -154,31 +154,41 @@ const NotificationsScreen = () => {
           const decoded = jwtDecode(token);
           const uid = decoded.userId;
           // setUserId(uid);
-    
+
           const q = query(
             collection(db, `acceptedMatches/${uid}/acceptedMatches`),
             orderBy("createdAt", "desc"),
             limit(1)
           );
-    
+
           unsubscribe = onSnapshot(q, (querySnapshot) => {
-            querySnapshot.forEach((doc) => {
+
+            querySnapshot.forEach(async (doc) => {
               console.log("🔥 New accepted:", doc.data());
 
               const firestoreData = doc.data();
+              const storedLastNotifyIdInNotifyTab = await AsyncStorage.getItem('lastNotifyIdInNotifyTab');
 
-              const newNtf = {
-                _id: doc.id,
-                createdAt: firestoreData.createdAt?.toDate().toISOString() || new Date().toISOString(),
-                content: firestoreData.content || "",
-                is_read: false,
-                url : firestoreData.sender.avatar,
-              };
-  
-              setNotifications(prev => {
-                return [newNtf, ...prev];
-              });
+              // Check if this is actually a new message
+              const isNewNptify = doc.id !== storedLastNotifyIdInNotifyTab;
+              if (isNewNptify) {
+                const newNtf = {
+                  _id: doc.id, // id cua doc ko phai _id cua notification trong database
+                  createdAt: firestoreData.createdAt?.toDate().toISOString() || new Date().toISOString(),
+                  content: firestoreData.content || "",
+                  is_read: false,
+                  url: firestoreData.sender.avatar,
+                };
+                
+                // Update the last message ID in storage
+                await AsyncStorage.setItem('lastNotifyIdInNotifyTab', doc.id);
+
+                setNotifications(prev => {
+                  return [newNtf, ...prev];
+                });
+              }
             });
+
           });
         }
       } catch (error) {
@@ -205,7 +215,7 @@ const NotificationsScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.notificationsList}
         refreshControl={
           <RefreshControl
