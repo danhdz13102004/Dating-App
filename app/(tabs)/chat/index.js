@@ -68,7 +68,9 @@ const MessagesScreen = () => {
         let min = Math.round(time / 60);
         if (min < 60) return min + 'm ago';
         let hour = Math.round(min / 60);
-        return hour + 'h ago';
+        if (hour < 24) return hour + 'h ago';
+        let day = Math.round(hour / 24);
+        return day + 'd ago';
     };
 
     // Add this function to fetch the user's newest post

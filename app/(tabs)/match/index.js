@@ -420,12 +420,12 @@ const MatchesScreen = () => {
             </View>
           ) : (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Không có ai phù hợp lúc này</Text>
+              <Text style={styles.emptyText}>No matches available right now</Text>
               <Text style={styles.suggestionText}>
-                Hãy thử làm mới hoặc cập nhật hồ sơ để thu hút nhiều người hơn!
+                Try refreshing or update your profile to attract more people!
               </Text>
               <TouchableOpacity style={styles.retryButton} onPress={fetchMatches}>
-                <Text style={styles.retryButtonText}>Làm mới</Text>
+                <Text style={styles.retryButtonText}>Refresh</Text>
               </TouchableOpacity>
             </View>
           )}
