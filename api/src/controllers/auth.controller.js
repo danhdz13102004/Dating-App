@@ -54,6 +54,37 @@ class AuthController {
       next(error);
     }
   };
+
+  changePassword = async (req, res, next) => {
+    try {
+      console.log(`[P]::ChangePassword::`, req.body);
+      const { userId, currentPassword, newPassword } = req.body;
+
+      if (!userId || !currentPassword || !newPassword) {
+        return res
+          .status(400)
+          .json({
+            message: "User ID, current password and new password are required",
+          });
+      }
+      const result = await AuthService.changePassword({
+        userId,
+        currentPassword,
+        newPassword,
+      });
+      console.log(`[P]::ChangePassword::Result::`, result);
+      return res.status(200).json({
+        status: "success",
+        message: "Password changed successfully",
+      });
+    } catch (error) {
+      console.error(`[P]::ChangePassword::Error::`, error);
+      return res.status(error.statusCode || 500).json({
+        status: "error",
+        message: error.message || "Internal server error",
+      });
+    }
+  };
 }
 
 module.exports = new AuthController();
