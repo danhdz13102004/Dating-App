@@ -31,8 +31,12 @@ import {
     serverTimestamp,
     addDoc,
     limit,
+    getDocs,
+    where,
+    writeBatch
 } from "firebase/firestore";
 import { db } from "../../../firebaseConfig";
+import { useFocusEffect } from 'expo-router';
 
 // Cloudinary configuration
 const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dmw4uwbpl/upload";
@@ -72,6 +76,13 @@ const MessagesScreen = () => {
         let day = Math.round(hour / 24);
         return day + 'd ago';
     };
+    useFocusEffect(
+        React.useCallback(() => {
+            console.log("Màn hình chat được focus lại - cập nhật danh sách");
+            fetchUserData(); // Thay bằng tên hàm của bạn để lấy danh sách chat
+            return () => { };
+        }, [])
+    );
 
     // Add this function to fetch the user's newest post
     const fetchMyNewestPost = async (uid) => {
@@ -87,7 +98,7 @@ const MessagesScreen = () => {
             );
             const data = await response.json();
             console.log("📥 User's newest post fetched:", data);
-            
+
             if (data.status === "success" && data.hasRecentImage && data.data) {
                 console.log("User's newest post:", data.data);
                 setMyPost(data.data);
@@ -111,7 +122,7 @@ const MessagesScreen = () => {
                 const decoded = jwtDecode(token);
                 const uid = decoded.userId;
                 setUserId(uid);
-                
+
                 // Fetch current user data
                 const userResponse = await fetch(
                     `${appConfig.API_URL}/user/profile/${uid}`,
@@ -125,10 +136,10 @@ const MessagesScreen = () => {
                 const userData = await userResponse.json();
                 console.log("📥 User fetched from API:", userData);
                 setCurrentUser(userData.data);
-                
+
                 // Fetch user's newest post
                 await fetchMyNewestPost(uid);
-                
+
                 // Fetch conversations
                 const conversationResponse = await fetch(
                     `${appConfig.API_URL}/user/conversation/${uid}`,
@@ -160,17 +171,32 @@ const MessagesScreen = () => {
     };
 
     const setMessagesFromConver = (conversations, uid) => {
+        if (!Array.isArray(conversations)) {
+            console.error("Conversations is not an array:", conversations);
+            return;
+        }
+
         let _message = [];
         conversations.forEach(conversation => {
+            if (!conversation || !conversation.receiver || !conversation.sender) {
+                console.warn("Invalid conversation object:", conversation);
+                return;
+            }
+
             let _partner = conversation.receiver._id == uid ? conversation.sender : conversation.receiver;
+            if (!_partner) {
+                console.warn("Partner not found in conversation:", conversation);
+                return;
+            }
+
             let message = {
-                id: conversation._id,
-                name: _partner.name,
-                partnerId: _partner._id,
-                avatar: _partner.avatar,
+                id: conversation._id || "unknown-conversation",
+                name: _partner.name || "Unknown User",
+                partnerId: _partner._id || "unknown-partner",
+                avatar: _partner.avatar || noImageUrl,
                 message: conversation.last_message ? conversation.last_message : "Hãy gửi tin nhắn để bắt đầu!",
                 time: time_format(conversation.updatedAt),
-                unread: conversation.unread
+                unread: conversation.unread || 0
             };
             _message.push(message);
         });
@@ -179,28 +205,89 @@ const MessagesScreen = () => {
     };
 
     const setActivitiesFromConver = (conversations, uid) => {
+        if (!Array.isArray(conversations)) {
+            console.error("Conversations is not an array:", conversations);
+            return;
+        }
+
         let _activities = [];
         conversations.forEach(conversation => {
             // console.log("check conversation", conversation);
+            if (!conversation || !conversation.receiver || !conversation.sender) {
+                console.warn("Invalid conversation object:", conversation);
+                return;
+            }
+
             let _partner = conversation.receiver._id == uid ? conversation.sender : conversation.receiver;
+            if (!_partner) {
+                console.warn("Partner not found in conversation:", conversation);
+                return;
+            }
+
             let activity = {
-                id: _partner._id,
-                name: _partner.name,
-                avatar: _partner.avatar,
-                hasStory: conversation.hasStory,
-                storyImage: conversation.imagePost ? conversation.imagePost[0] : _partner.avatar,
+                id: _partner._id || "unknown-partner",
+                name: _partner.name || "Unknown User",
+                avatar: _partner.avatar || noImageUrl,
+                hasStory: conversation.hasStory || false,
+                storyImage: conversation.imagePost && conversation.imagePost.length > 0 ?
+                    conversation.imagePost[0] : _partner.avatar || noImageUrl,
             };
-            if(activity.hasStory) {
+            if (activity.hasStory) {
                 _activities.unshift(activity);
             }
             else {
                 _activities.push(activity);
             }
         });
-        
+
         setActivities(_activities);
     };
 
+    // Thêm hàm để lấy thông tin đối tác
+    const fetchPartnerInfo = async (partnerId) => {
+        if (!partnerId) {
+            console.error("Partner ID is undefined");
+            return {
+                name: "Unknown User",
+                _id: "unknown-partner",
+                avatar: noImageUrl
+            };
+        }
+
+        try {
+            const response = await fetch(
+                `${appConfig.API_URL}/user/profile/${partnerId}`,
+                {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+            const userData = await response.json();
+
+            // Kiểm tra và đảm bảo dữ liệu hợp lệ
+            if (!userData || !userData.data) {
+                console.warn("Invalid user data response:", userData);
+                return {
+                    name: "Unknown User",
+                    _id: partnerId,
+                    avatar: noImageUrl
+                };
+            }
+
+            return userData.data;
+        } catch (error) {
+            console.error("❌ Error fetching partner info:", error);
+            return {
+                name: "Unknown User",
+                _id: partnerId,
+                avatar: noImageUrl
+            };
+        }
+    };
+
+    // Thiết lập Firebase Realtime Listener
     useEffect(() => {
         let unsubscribe;
 
@@ -215,47 +302,149 @@ const MessagesScreen = () => {
                     const q = query(
                         collection(db, `messages/${uid}/messages`),
                         orderBy("createdAt", "desc"),
-                        limit(1)
+                        limit(20)
                     );
 
-                    unsubscribe = onSnapshot(q, (querySnapshot) => {
-                        querySnapshot.forEach((doc) => {
-                            console.log("🔥 New message:", doc.data());
+                    unsubscribe = onSnapshot(q, async (querySnapshot) => {
+                        // Tạo một đối tượng để theo dõi thay đổi theo cuộc trò chuyện
+                        const conversationUpdates = {};
 
-                            const firestoreData = doc.data();
-                            // console.log("🔥 Firestore data:", firestoreData);
+                        // Xử lý từng tin nhắn mới
+                        for (const docChange of querySnapshot.docChanges()) {
+                            // Chỉ xử lý tin nhắn mới hoặc được sửa đổi
+                            if (docChange.type === "added" || docChange.type === "modified") {
+                                const doc = docChange.doc;
+                                console.log("🔥 Thay đổi tin nhắn:", doc.data());
 
-                            const newMsg = {
-                                _id: doc.id,
-                                content: firestoreData.content || "",
-                                conversation: firestoreData.conversation || "",
-                                createdAt: firestoreData.createdAt?.toDate().toISOString() || new Date().toISOString(),
-                                updatedAt: firestoreData.updatedAt?.toDate().toISOString() || firestoreData.createdAt?.toDate().toISOString() || new Date().toISOString(),
-                                status: firestoreData.status || "sent",
-                                sender: {
-                                    _id: firestoreData.senderId
-                                },
-                                __v: 0
-                            };
+                                const firestoreData = doc.data();
+                                const conversationId = firestoreData.conversation || "";
 
-                            setMessages(prev => {
-                                // console.log("check prev mess", prev);
-                                let newCon = [];
-                                for (let i = 0; i < prev.length; i++) {
-                                    // console.log(prev[i].id, newMsg.conversation);
-                                    if (prev[i].id === newMsg.conversation) {
-                                        prev[i].message = newMsg.content;
-                                        prev[i].time = time_format(newMsg.updatedAt);
-                                        newCon.unshift(prev[i]);
+                                // Bỏ qua nếu không có ID cuộc trò chuyện
+                                if (!conversationId) continue;
+
+                                // Đảm bảo tất cả các trường đều có giá trị mặc định
+                                const newMsg = {
+                                    _id: doc.id,
+                                    content: firestoreData.content || "",
+                                    conversation: conversationId,
+                                    createdAt: firestoreData.createdAt?.toDate().toISOString() || new Date().toISOString(),
+                                    updatedAt: firestoreData.updatedAt?.toDate().toISOString() ||
+                                        firestoreData.createdAt?.toDate().toISOString() ||
+                                        new Date().toISOString(),
+                                    status: firestoreData.status || "sent",
+                                    sender: {
+                                        _id: firestoreData.senderId || "unknown-sender"
+                                    },
+                                    isRead: firestoreData.isRead || false,
+                                    __v: 0
+                                };
+
+                                // Kiểm tra xem tin nhắn đến hay đi
+                                const isIncoming = newMsg.sender._id !== uid;
+
+                                // Chỉ đếm là chưa đọc nếu là tin nhắn đến và chưa đọc
+                                const shouldCountAsUnread = isIncoming && !newMsg.isRead;
+
+                                // Cập nhật thông tin cho cuộc trò chuyện này
+                                if (!conversationUpdates[conversationId]) {
+                                    conversationUpdates[conversationId] = {
+                                        latestMessage: newMsg,
+                                        unreadIncrement: shouldCountAsUnread ? 1 : 0,
+                                        isNew: true, // Mặc định giả định là cuộc trò chuyện mới
+                                    };
+                                } else {
+                                    // So sánh thời gian để chỉ giữ tin nhắn mới nhất
+                                    const currentLatest = conversationUpdates[conversationId].latestMessage;
+                                    const currentTime = new Date(currentLatest.updatedAt);
+                                    const newTime = new Date(newMsg.updatedAt);
+
+                                    if (newTime > currentTime) {
+                                        conversationUpdates[conversationId].latestMessage = newMsg;
                                     }
-                                    else { newCon.push(prev[i]); }
-                                }
-                                // console.log("check after loop prev mess", newCon);
-                                return newCon;
-                            });
 
-                            // console.log("🔥 New formatted message:", newMsg);
+                                    // Cộng dồn số tin nhắn chưa đọc
+                                    if (shouldCountAsUnread) {
+                                        conversationUpdates[conversationId].unreadIncrement += 1;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Cập nhật danh sách tin nhắn
+                        setMessages(prev => {
+                            // Tạo một bản sao để không thay đổi trực tiếp state
+                            const updatedMessages = [...prev];
+                            const newConversations = [];
+
+                            // Đánh dấu các cuộc trò chuyện đã tồn tại
+                            for (const msg of updatedMessages) {
+                                if (conversationUpdates[msg.id]) {
+                                    conversationUpdates[msg.id].isNew = false;
+                                }
+                            }
+
+                            // Xử lý từng cuộc trò chuyện cần cập nhật
+                            for (const [conversationId, update] of Object.entries(conversationUpdates)) {
+                                // Nếu là cuộc trò chuyện mới
+                                if (update.isNew) {
+                                    // Lấy thông tin đối tác và thêm cuộc hội thoại mới
+                                    try {
+                                        // Thêm vào danh sách chờ để tránh async trong loop
+                                        newConversations.push(fetchPartnerInfo(update.latestMessage.sender._id)
+                                            .then(partner => {
+                                                return {
+                                                    id: conversationId,
+                                                    name: partner?.name || "Unknown User",
+                                                    partnerId: partner?._id || update.latestMessage.sender._id || "unknown-partner",
+                                                    avatar: partner?.avatar || noImageUrl,
+                                                    message: update.latestMessage.content || "Tin nhắn mới",
+                                                    time: time_format(update.latestMessage.updatedAt),
+                                                    unread: update.unreadIncrement
+                                                };
+                                            }));
+                                    } catch (err) {
+                                        console.error("Lỗi khi xử lý cuộc trò chuyện mới:", err);
+                                    }
+                                } else {
+                                    // Cập nhật cuộc trò chuyện hiện có
+                                    for (let i = 0; i < updatedMessages.length; i++) {
+                                        if (updatedMessages[i].id === conversationId) {
+                                            updatedMessages[i] = {
+                                                ...updatedMessages[i],
+                                                message: update.latestMessage.content || updatedMessages[i].message,
+                                                time: time_format(update.latestMessage.updatedAt),
+                                                // Cập nhật số lượng tin nhắn chưa đọc
+                                                unread: (updatedMessages[i].unread || 0) + update.unreadIncrement
+                                            };
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Nếu có cuộc trò chuyện mới, đợi tất cả xử lý xong rồi cập nhật
+                            if (newConversations.length > 0) {
+                                Promise.all(newConversations).then(newMsgs => {
+                                    setMessages(current => [...newMsgs, ...current]);
+                                });
+                            }
+
+                            // Sắp xếp lại tin nhắn theo thời gian mới nhất
+                            return [...updatedMessages].sort((a, b) => {
+                                // Ưu tiên các cuộc trò chuyện có tin nhắn mới chưa đọc
+                                if (a.unread > 0 && b.unread === 0) return -1;
+                                if (a.unread === 0 && b.unread > 0) return 1;
+
+                                // Chuyển đổi thời gian từ "x ago" sang thời gian thực
+                                // (Đây là phương pháp đơn giản, bạn có thể cải thiện bằng cách lưu timestamp)
+                                const aTime = a.time.replace(/[^0-9]/g, '');
+                                const bTime = b.time.replace(/[^0-9]/g, '');
+                                return parseInt(bTime) - parseInt(aTime);
+                            });
                         });
+
+                    }, error => {
+                        console.error("Firebase onSnapshot error:", error);
                     });
                 }
             } catch (error) {
@@ -284,10 +473,16 @@ const MessagesScreen = () => {
     const viewStory = (story) => {
         console.log("View story:", story);
 
+        // Kiểm tra story có tồn tại không
+        if (!story) {
+            console.error("Story object is undefined");
+            return;
+        }
+
         // If it's the current user and they have a recent post,
         // use the post image as the story image
         if (story.isCurrentUser) {
-            if (myPost) {
+            if (myPost && myPost.images && myPost.images.length > 0) {
                 setCurrentStory({
                     ...story,
                     storyImage: myPost.images[0]
@@ -465,6 +660,9 @@ const MessagesScreen = () => {
     };
 
     const renderActivity = ({ item, index }) => {
+        // Kiểm tra item có tồn tại không
+        if (!item) return null;
+
         if (index === 0 && item.isCurrentUser) {
             return (
                 <TouchableOpacity
@@ -472,7 +670,7 @@ const MessagesScreen = () => {
                     onPress={() => setModalVisible(true)}
                 >
                     <View style={styles.currentUserActivityAvatar}>
-                        <Image source={{ uri: item.avatar }} style={styles.activityImage} />
+                        <Image source={{ uri: item.avatar || noImageUrl }} style={styles.activityImage} />
                         <View style={styles.editIconContainer}>
                             <Icon name="add-a-photo" size={14} color="#fff" />
                         </View>
@@ -491,17 +689,28 @@ const MessagesScreen = () => {
                     styles.activityAvatar,
                     item.hasStory ? styles.hasStoryRing : null
                 ]}>
-                    <Image source={{ uri: item.avatar }} style={styles.activityImage} />
+                    <Image source={{ uri: item.avatar || noImageUrl }} style={styles.activityImage} />
                 </View>
-                <Text style={styles.activityName}>{item.name}</Text>
+                <Text style={styles.activityName}>{item.name || "Unknown"}</Text>
             </TouchableOpacity>
         );
     };
 
+    // Cải thiện hàm navigate để đảm bảo đánh dấu đã đọc đúng cách
     const navigate = async (converId, receiverId, name, avatar) => {
-        console.log(converId, receiverId);
+        // Thêm kiểm tra và giá trị mặc định
+        converId = converId || "unknown-conversation";
+        receiverId = receiverId || "unknown-receiver";
+        name = name || "Unknown User";
+        avatar = avatar || noImageUrl;
+
+        console.log("Điều hướng đến cuộc trò chuyện:", converId, receiverId);
 
         try {
+            // Cập nhật UI trước để người dùng thấy phản hồi ngay lập tức
+            setMessages(prev => prev.map(msg =>
+                msg.id === converId ? { ...msg, unread: 0 } : msg
+            ));
 
             // Gửi request đến backend để đánh dấu là đã đọc
             await fetch(`${appConfig.API_URL}/user/markAsRead/${converId}`, {
@@ -509,8 +718,29 @@ const MessagesScreen = () => {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ id: userId }),// userId đã có từ useEffect
+                body: JSON.stringify({ id: userId }),
             });
+
+            // Cập nhật trạng thái đã đọc trong Firebase
+            try {
+                const messagesRef = collection(db, `messages/${userId}/messages`);
+                const q = query(messagesRef, where("conversation", "==", converId), where("isRead", "==", false));
+
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    const batch = writeBatch(db);
+
+                    querySnapshot.forEach((doc) => {
+                        batch.update(doc.ref, { isRead: true });
+                    });
+
+                    await batch.commit();
+                    console.log("🔥 Đã cập nhật trạng thái đã đọc trong Firebase");
+                }
+            } catch (firebaseError) {
+                console.error("❌ Lỗi khi cập nhật Firebase:", firebaseError);
+                // Lỗi Firebase không nên ảnh hưởng đến việc điều hướng
+            }
         } catch (error) {
             console.error("❌ Lỗi khi đánh dấu tin nhắn đã đọc:", error);
         }
@@ -519,53 +749,64 @@ const MessagesScreen = () => {
         router.navigate(`/(tabs)/chat/detail-chat?idCoversation=${converId}&id_partner=${receiverId}&name=${name}&avatar=${avatar}`);
     };
 
+    const renderMessage = ({ item }) => {
+        // Kiểm tra item có tồn tại không
+        if (!item) return null;
 
-
-    const renderMessage = ({ item }) => (
-        <TouchableOpacity style={styles.messageItem} onPress={() => navigate(item.id, item.partnerId, item.name, item.avatar)}>
-            <Image source={{ uri: item.avatar }} style={styles.messageAvatar} />
-            <View style={styles.messageContent}>
-                <View style={styles.messageHeader}>
-                    <Text style={styles.messageName}>{item.name}</Text>
-                    <Text style={styles.messageTime}>{item.time}</Text>
+        return (
+            <TouchableOpacity
+                style={styles.messageItem}
+                onPress={() => navigate(
+                    item.id || "unknown-conversation",
+                    item.partnerId || "unknown-partner",
+                    item.name || "Unknown User",
+                    item.avatar || noImageUrl
+                )}
+            >
+                <Image source={{ uri: item.avatar || noImageUrl }} style={styles.messageAvatar} />
+                <View style={styles.messageContent}>
+                    <View style={styles.messageHeader}>
+                        <Text style={styles.messageName}>{item.name || "Unknown User"}</Text>
+                        <Text style={styles.messageTime}>{item.time || ""}</Text>
+                    </View>
+                    <View style={styles.messagePreview}>
+                        {item.isYou && <Text style={styles.youLabel}>You: </Text>}
+                        <Text
+                            style={[
+                                styles.messageText,
+                                item.unread > 0 ? styles.unreadMessageText : null
+                            ]}
+                            numberOfLines={1}
+                        >
+                            {item.message || ""}
+                        </Text>
+                        {item.unread > 0 && (
+                            <View style={styles.unreadBadge}>
+                                <Text style={styles.unreadBadgeText}>{item.unread}</Text>
+                            </View>
+                        )}
+                    </View>
                 </View>
-                <View style={styles.messagePreview}>
-                    {item.isYou && <Text style={styles.youLabel}>You: </Text>}
-                    <Text
-                        style={[
-                            styles.messageText,
-                            item.unread > 0 ? styles.unreadMessageText : null
-                        ]}
-                        numberOfLines={1}
-                    >
-                        {item.message}
-                    </Text>
-                    {item.unread > 0 && (
-                        <View style={styles.unreadBadge}>
-                            <Text style={styles.unreadBadgeText}>{item.unread}</Text>
-                        </View>
-                    )}
-                </View>
-            </View>
-        </TouchableOpacity>
-    );
+            </TouchableOpacity>
+        );
+    };
 
     const activitiesData = React.useMemo(() => {
         if (!currentUser) return activities;
 
         const currentUserActivity = {
-            id: currentUser._id || userId,
+            id: currentUser._id || userId || "current-user",
             name: currentUser.name || 'You',
-            avatar: currentUser.avatar || 'https://via.placeholder.com/150',
+            avatar: currentUser.avatar || noImageUrl,
             isCurrentUser: true,
-            hasStory: myPost !== null, // Set hasStory based on myPost
-            storyImage: myPost ? myPost.images : currentUser.avatar // Use myPost image if available
+            hasStory: myPost !== null,
+            storyImage: myPost && myPost.images && Array.isArray(myPost.images) && myPost.images.length > 0
+                ? myPost.images[0]
+                : (currentUser && currentUser.avatar) || noImageUrl
         };
 
         return [currentUserActivity, ...activities];
     }, [activities, currentUser, userId, myPost]);
-
-
 
     const handleSearch = async (text) => {
         setSearchQuery(text);
@@ -609,31 +850,41 @@ const MessagesScreen = () => {
     };
 
     // Add a function to render search results
-    const renderSearchResult = ({ item }) => (
-        <TouchableOpacity
-            style={styles.messageItem}
-            onPress={() => navigate(item.id, item.partnerId || item.id, item.name, item.avatar || noImageUrl)}
-        >
-            <Image
-                source={{ uri: item.avatar || noImageUrl }}
-                style={styles.messageAvatar}
-            />
-            <View style={styles.messageContent}>
-                <View style={styles.messageHeader}>
-                    <Text style={styles.messageName}>{item.name}</Text>
-                    <Text style={styles.messageTime}>{item.last_message ? time_format(new Date()) : ""}</Text>
+    const renderSearchResult = ({ item }) => {
+        // Kiểm tra item có tồn tại không
+        if (!item) return null;
+
+        return (
+            <TouchableOpacity
+                style={styles.messageItem}
+                onPress={() => navigate(
+                    item.id || "unknown-conversation",
+                    item.partnerId || item.id || "unknown-user",
+                    item.name || "Unknown User",
+                    item.avatar || noImageUrl
+                )}
+            >
+                <Image
+                    source={{ uri: item.avatar || noImageUrl }}
+                    style={styles.messageAvatar}
+                />
+                <View style={styles.messageContent}>
+                    <View style={styles.messageHeader}>
+                        <Text style={styles.messageName}>{item.name || "Unknown User"}</Text>
+                        <Text style={styles.messageTime}>{item.last_message ? time_format(new Date()) : ""}</Text>
+                    </View>
+                    <View style={styles.messagePreview}>
+                        <Text
+                            style={styles.messageText}
+                            numberOfLines={1}
+                        >
+                            {item.last_message || "Bắt đầu cuộc trò chuyện"}
+                        </Text>
+                    </View>
                 </View>
-                <View style={styles.messagePreview}>
-                    <Text
-                        style={styles.messageText}
-                        numberOfLines={1}
-                    >
-                        {item.last_message || "Bắt đầu cuộc trò chuyện"}
-                    </Text>
-                </View>
-            </View>
-        </TouchableOpacity>
-    );
+            </TouchableOpacity>
+        );
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -675,7 +926,7 @@ const MessagesScreen = () => {
                         <FlatList
                             data={searchResults}
                             renderItem={renderSearchResult}
-                            keyExtractor={(item) => item.id}
+                            keyExtractor={(item) => item.id || Math.random().toString()}
                             style={styles.messagesList}
                             initialNumToRender={10}
                         />
@@ -691,7 +942,7 @@ const MessagesScreen = () => {
                     horizontal
                     data={activitiesData}
                     renderItem={renderActivity}
-                    keyExtractor={(item) => item.id}
+                    keyExtractor={(item) => item.id || Math.random().toString()}
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.activitiesList}
                     refreshControl={
@@ -710,7 +961,7 @@ const MessagesScreen = () => {
                 <FlatList
                     data={messages}
                     renderItem={renderMessage}
-                    keyExtractor={(item) => item.id}
+                    keyExtractor={(item) => item.id || Math.random().toString()}
                     contentContainerStyle={styles.messagesList}
                     refreshControl={
                         <RefreshControl
@@ -758,8 +1009,8 @@ const MessagesScreen = () => {
                                 if (currentUser) {
                                     viewStory({
                                         name: currentUser.name || 'You',
-                                        storyImage: myPost ? myPost.images : noImageUrl,
-                                        avatar: currentUser.avatar,
+                                        storyImage: myPost && myPost.images && myPost.images.length > 0 ? myPost.images[0] : noImageUrl,
+                                        avatar: currentUser.avatar || noImageUrl,
                                         isCurrentUser: true
                                     });
                                 }
@@ -807,8 +1058,8 @@ const MessagesScreen = () => {
                         <View style={styles.storyUser}>
                             {currentStory && (
                                 <>
-                                    <Image source={{ uri: currentStory.avatar }} style={styles.storyUserAvatar} />
-                                    <Text style={styles.storyUserName}>{currentStory.name}</Text>
+                                    <Image source={{ uri: currentStory.avatar || noImageUrl }} style={styles.storyUserAvatar} />
+                                    <Text style={styles.storyUserName}>{currentStory.name || "Unknown User"}</Text>
                                 </>
                             )}
                         </View>
@@ -824,7 +1075,7 @@ const MessagesScreen = () => {
 
                     {currentStory && (
                         <Image
-                            source={{ uri: currentStory.storyImage }}
+                            source={{ uri: currentStory.storyImage || noImageUrl }}
                             style={styles.storyImage}
                             resizeMode="cover"
                         />
@@ -858,7 +1109,7 @@ const MessagesScreen = () => {
                         <View style={styles.postUser}>
                             {currentUser && (
                                 <>
-                                    <Image source={{ uri: currentUser.avatar }} style={styles.postUserAvatar} />
+                                    <Image source={{ uri: currentUser.avatar || noImageUrl }} style={styles.postUserAvatar} />
                                     <Text style={styles.postUserName}>{currentUser.name || 'You'}</Text>
                                 </>
                             )}
@@ -1260,6 +1511,10 @@ const styles = StyleSheet.create({
     },
     searchLoader: {
         padding: 15,
+    },
+    searchResultsWrapper: {
+        flex: 1,
+        paddingHorizontal: 16,
     },
 });
 
