@@ -25,11 +25,14 @@ import {
   serverTimestamp,
   addDoc,
   limit,
+  getDocs,  // Thêm getDocs
+  where,    // Thêm where
+  writeBatch,
 } from "firebase/firestore";
 import appConfig from "../../../configs/config";
 import { useRouter, useGlobalSearchParams, useLocalSearchParams } from 'expo-router'
 
-const  DetailChat = () => {
+const DetailChat = () => {
   const scrollViewRef = useRef(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -38,8 +41,9 @@ const  DetailChat = () => {
   const [messages, setMessages] = useState([]);
   const router = useRouter();
   const { idCoversation, id_partner, name, avatar } = useLocalSearchParams();
-  
-  
+
+  const [unreadMessages, setUnreadMessages] = useState([]);
+
 
   // Lấy messages từ API
   useEffect(() => {
@@ -63,7 +67,7 @@ const  DetailChat = () => {
       }
     };
     fetchMessages();
-  }, []); 
+  }, []);
 
   // Lắng nghe Firestore thay đổi (nếu có)
   useEffect(() => {
@@ -77,21 +81,23 @@ const  DetailChat = () => {
           const uid = decoded.userId;
           // const uid = "67fb1dc83f35cac28bea0ea7";
           setUserId(uid);
-    
+
           const q = query(
             collection(db, `messages/${uid}/messages`),
             orderBy("createdAt", "desc"),
             limit(1) // 🔥 Chỉ lấy tin nhắn mới nhất
           );
-    
-          unsubscribe = onSnapshot(q, (querySnapshot) => {
+
+          unsubscribe = onSnapshot(q, async (querySnapshot) => { // Thêm async
+            const newUnreadMessages = []; // Tạo mảng để theo dõi tin nhắn chưa đọc mới
+
             querySnapshot.forEach((doc) => {
               // console.log("🔥 New message from detail:", doc.data());
 
               const firestoreData = doc.data();
               // console.log("🔥 Firestore data:", firestoreData);
               // console.log(firestoreData.sender, id_partner);
-              if(firestoreData.sender != id_partner) return;
+              if (firestoreData.sender != id_partner) return;
 
               // 🔁 Chuyển đổi dữ liệu sang định dạng giống API
               const newMsg = {
@@ -106,14 +112,26 @@ const  DetailChat = () => {
                 }, // nếu lưu trong Firestore
                 __v: 0
               };
-  
+
               setMessages(prev => {
                 return [...prev, newMsg];
               });
-  
-              // console.log("🔥 New formatted message:", newMsg);
 
+
+              // Nếu tin nhắn chưa đọc, thêm vào mảng chưa đọc
+              if (!newMsg.isRead && newMsg.sender._id !== uid) {
+                newUnreadMessages.push(doc.id);
+              }
             });
+
+            // Nếu có tin nhắn mới chưa đọc, đánh dấu đã đọc
+            if (newUnreadMessages.length > 0) {
+              // Cập nhật state trước
+              setUnreadMessages(prev => [...prev, ...newUnreadMessages]);
+
+              // Đánh dấu đã đọc tự động vì người dùng đang trong chat
+              markMessagesAsRead();
+            }
           });
         }
       } catch (error) {
@@ -128,8 +146,68 @@ const  DetailChat = () => {
     };
   }, []);
 
+
+  // Thêm hàm markMessagesAsRead
+  const markMessagesAsRead = async () => {
+    try {
+      if (!userId || !idCoversation) return;
+
+      // Cập nhật đánh dấu đã đọc ở backend
+      await fetch(`${appConfig.API_URL}/user/markAsRead/${idCoversation}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: userId }),
+      });
+
+      // Cập nhật đánh dấu đã đọc trong Firebase
+      const messagesRef = collection(db, `messages/${userId}/messages`);
+      const q = query(
+        messagesRef,
+        where("conversation", "==", idCoversation),
+        where("isRead", "==", false)
+      );
+
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const batch = writeBatch(db);
+
+        querySnapshot.forEach((doc) => {
+          batch.update(doc.ref, { isRead: true });
+        });
+
+        await batch.commit();
+        console.log("🔥 Đã đánh dấu tất cả tin nhắn là đã đọc trong Firebase");
+
+        // Xóa các tin nhắn đã đọc khỏi state
+        setUnreadMessages([]);
+      }
+    } catch (error) {
+      console.error("❌ Error marking messages as read:", error);
+    }
+  };
   useEffect(() => {
-    
+    if (userId && idCoversation) {
+      markMessagesAsRead();
+    }
+  }, [userId, idCoversation]);
+
+  // Thêm effect để đánh dấu tin nhắn đã đọc mỗi khi có tin nhắn mới từ id_partner
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (unreadMessages.length > 0) {
+        markMessagesAsRead();
+      }
+    }, 1000); // Chờ 1 giây trước khi đánh dấu đã đọc
+
+    return () => clearTimeout(timer);
+  }, [unreadMessages]);
+
+
+
+  useEffect(() => {
+
     scrollViewRef.current?.scrollToEnd({ animated: true });
   }, [messages]);
 
@@ -183,7 +261,7 @@ const  DetailChat = () => {
   const sendMessage = async ({ senderId = "abc" }) => {
     try {
       const receiverId = id_partner; // ID của người dùng khác
-      console.log("CHECK SEND MESS :",senderId, receiverId)
+      console.log("CHECK SEND MESS :", senderId, receiverId)
       const messagesSubcollectionRef = collection(
         db,
         `messages/${receiverId}/messages`
@@ -193,8 +271,8 @@ const  DetailChat = () => {
         _id: "123",
         content: content,
         conversation: idCoversation, // nếu có
-        status:"sent",
-        createdAt:new Date().toISOString(),
+        status: "sent",
+        createdAt: new Date().toISOString(),
         sender: {
           _id: senderId
         }
@@ -221,7 +299,7 @@ const  DetailChat = () => {
         updatedAt: time
       };
       await addDoc(messagesSubcollectionRef, newMessage);
-      
+
       await addToDB(newMessageForDB)
 
       console.log("✅ Tin nhắn đã được gửi!");
@@ -239,7 +317,7 @@ const  DetailChat = () => {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <TouchableOpacity style={styles.backButton} onPress={()=>router.push("/(tabs)/chat")}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.push("/(tabs)/chat")}>
             <MaterialIcons
               style={{ marginLeft: 5 }}
               name="arrow-back-ios"
@@ -250,7 +328,7 @@ const  DetailChat = () => {
 
           <View style={styles.profileContainer}>
             <Image
-              source={{ uri: avatar}}
+              source={{ uri: avatar }}
               style={styles.avatar}
             />
             <View style={styles.userInfo}>
@@ -305,17 +383,17 @@ const  DetailChat = () => {
               // console.log("isSent", isSent);
               const time = msg.createdAt
                 ? new Date(msg.createdAt).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
                 : "";
 
               const isLast = index === messages.length - 1;
-              if(isLast) {
+              if (isLast) {
                 setTimeout(() => {
                   scrollViewRef.current?.scrollToEnd({ animated: true });
                 }
-                , 200);
+                  , 200);
               }
 
               return (
