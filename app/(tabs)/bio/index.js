@@ -101,7 +101,9 @@ const ProfileScreen = () => {
   const navigateToLocation = () => {
     router.push('/(tabs)/bio/location')
   }
-
+  const navigateToChangePassword = () => {
+    router.push('/(tabs)/bio/change-password');
+  };
   // Logout function - Delete user token and redirect to login page
   const handleLogout = async () => {
     try {
@@ -322,6 +324,14 @@ const ProfileScreen = () => {
               <Ionicons name="person-outline" size={20} color="#FF4D67" />
             </View>
             <Text style={styles.settingText}>Edit profile</Text>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingItem} onPress={navigateToChangePassword}>
+            <View style={styles.settingIconContainer}>
+              <Ionicons name="refresh-outline" size={20} color="#FF4D67" />
+            </View>
+            <Text style={styles.settingText}>Change Password</Text>
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
 

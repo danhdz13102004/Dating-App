@@ -65,6 +65,9 @@ const MessagesScreen = () => {
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+
+
 
     const time_format = (isoTime) => {
         const time = Math.max(0, Math.floor((new Date() - new Date(isoTime)) / 1000));
@@ -116,6 +119,7 @@ const MessagesScreen = () => {
     // Fetch user data
     const fetchUserData = async () => {
         try {
+            setIsLoading(true);
             setRefreshing(true);
             const token = await AsyncStorage.getItem("authToken");
             if (token) {
@@ -159,6 +163,7 @@ const MessagesScreen = () => {
             console.error("❌ Error fetching data:", error);
         } finally {
             setRefreshing(false);
+            setIsLoading(false);
         }
     };
 
@@ -958,20 +963,37 @@ const MessagesScreen = () => {
 
             <View style={styles.messagesSection}>
                 <Text style={styles.sectionTitle}>Messages</Text>
-                <FlatList
-                    data={messages}
-                    renderItem={renderMessage}
-                    keyExtractor={(item) => item.id || Math.random().toString()}
-                    contentContainerStyle={styles.messagesList}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={refreshing}
-                            onRefresh={onRefresh}
-                            colors={[Colors.primaryColor]}
-                            tintColor={Colors.primaryColor}
-                        />
-                    }
-                />
+                {isLoading ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color={Colors.primaryColor} />
+                        <Text style={styles.loadingText}>loading message...</Text>
+                    </View>
+                ) : (
+                    <FlatList
+                        data={messages}
+                        renderItem={renderMessage}
+                        keyExtractor={(item) => item.id || Math.random().toString()}
+                        contentContainerStyle={[
+                            styles.messagesList,
+                            messages.length === 0 ? { flex: 1, justifyContent: 'center' } : null
+                        ]}
+                        ListEmptyComponent={
+                            <View style={styles.emptyContainer}>
+                                <Icon name="chat-bubble-outline" size={50} color="#cccccc" />
+                                <Text style={styles.emptyListText}>No messages yet</Text>
+                                <Text style={styles.emptyListSubtext}>Start a new conversation!</Text>
+                            </View>
+                        }
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={refreshing}
+                                onRefresh={onRefresh}
+                                colors={[Colors.primaryColor]}
+                                tintColor={Colors.primaryColor}
+                            />
+                        }
+                    />
+                )}
             </View>
 
             <Modal
@@ -1515,6 +1537,24 @@ const styles = StyleSheet.create({
     searchResultsWrapper: {
         flex: 1,
         paddingHorizontal: 16,
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 60,
+        height: 300,
+    },
+    emptyListText: {
+        fontSize: 18,
+        fontWeight: '500',
+        color: '#888',
+        marginTop: 15,
+    },
+    emptyListSubtext: {
+        fontSize: 14,
+        color: '#aaa',
+        marginTop: 8,
     },
 });
 

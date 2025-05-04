@@ -177,7 +177,7 @@ async function seedUsers() {
         birthday: new Date('2003-03-12'), // 22 tuổi
         location: {
           type: 'Point',
-          coordinates: generateRandomCoordinates(danang, 10) // 10km
+          coordinates: generateRandomCoordinates(danang, 1) // 10km
         },
         hobbies: getRandomHobbies(10),
         avatar: 'https://i.pinimg.com/736x/33/33/43/3333433e712f28c122bd8e9cde8e1eac.jpg',
