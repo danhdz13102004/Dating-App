@@ -862,13 +862,13 @@ const MatchScreen = () => {
                     key={index}
                     style={[
                       styles.interestTag,
-                      index < 2 && styles.interestTagHighlighted,
+                      styles.interestTagHighlighted,
                     ]}
                   >
                     <Text
                       style={[
                         styles.interestText,
-                        index < 2 && styles.interestTextHighlighted,
+                        styles.interestTextHighlighted,
                       ]}
                     >
                       {capitalizeFirstLetter(interest)}
