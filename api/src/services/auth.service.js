@@ -133,6 +133,44 @@ class AuthService {
       },
     };
   };
+
+  static changePassword = async ({ userId, currentPassword, newPassword }) => {
+    if (!userId || !currentPassword || !newPassword) {
+      throw new Error(
+        "User ID, current password and new password are required"
+      );
+    }
+
+    // Tìm user theo ID
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+
+    // Kiểm tra mật khẩu hiện tại
+    const isPasswordValid = await comparePassword(
+      currentPassword,
+      user.password
+    );
+    if (!isPasswordValid) {
+      throw new UnauthorizedError("Current password is incorrect");
+    }
+
+    // Mã hóa mật khẩu mới
+    const hashedPassword = await hashPassword(newPassword);
+
+    // Cập nhật mật khẩu mới
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { password: hashedPassword },
+      { new: true }
+    );
+
+    return {
+      status: "success",
+      message: "Password changed successfully",
+    };
+  };
 }
 
 module.exports = AuthService;
