@@ -32,7 +32,7 @@ export default function Layout() {
         console.error("❌ Error loading last message ID:", error);
       }
     };
-    
+
     loadLastMessageId();
   }, []);
 
@@ -48,29 +48,29 @@ export default function Layout() {
         }
       }
     };
-    
+
     saveLastMessageId();
   }, [lastMessageId]);
 
   // Function to show popup notification
   const showNotification = (message, id) => {
     console.log("🔥 Showing notification:", message);
-    
+
     setPopupMessage(message);
     setShowPopup(true);
-    
+
     // Animate popup in
     Animated.timing(popupAnimation, {
       toValue: 1,
       duration: 300,
       useNativeDriver: true,
     }).start();
-    
+
     // Clear any existing timeout
     if (popupTimeout.current) {
       clearTimeout(popupTimeout.current);
     }
-    
+
     // Auto hide after 3 seconds
     popupTimeout.current = setTimeout(() => {
       Animated.timing(popupAnimation, {
@@ -107,6 +107,69 @@ export default function Layout() {
     };
   }, []);
 
+  //Notify popup
+  useEffect(() => {
+    let unsubscribe;
+
+    const fetchUserIdAndSubscribe = async () => {
+      try {
+        const token = await AsyncStorage.getItem("authToken");
+        if (token) {
+          const decoded = jwtDecode(token);
+          const uid = decoded.userId;
+          // setUserId(uid);
+
+          const q = query(
+            collection(db, `acceptedMatches/${uid}/acceptedMatches`),
+            orderBy("createdAt", "desc"),
+            limit(1)
+          );
+
+          unsubscribe = onSnapshot(q, (querySnapshot) => {
+            if (!querySnapshot.metadata.hasPendingWrites && !querySnapshot.metadata.fromCache) {
+              querySnapshot.forEach(async (doc) => {
+                console.log("🔥 New accepted:", doc.data());
+                
+                const firestoreData = doc.data();
+                const storedLastNotifyId = await AsyncStorage.getItem('lastNotifyId');
+
+                  // Check if this is actually a new notify
+                const isNewNptify = doc.id !== storedLastNotifyId;
+                if (isNewNptify) {
+                  showNotification(firestoreData.content || "New notify received!");
+
+                  // Update the last message ID in storage
+                  await AsyncStorage.setItem('lastNotifyId', doc.id);
+                } 
+                
+              });
+            }
+            else{
+              querySnapshot.forEach(async (doc) => {
+                try {
+                  await AsyncStorage.setItem('lastNotifyId', doc.id);
+                } catch (error) {
+                  console.error("❌ Error updating last notify ID:", error);
+                }
+              });
+            }
+            
+          });
+        }
+      } catch (error) {
+        console.error("❌ Error in subscription:", error);
+      }
+    };
+
+    fetchUserIdAndSubscribe();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+
+
   useEffect(() => {
     let unsubscribe;
 
@@ -133,21 +196,21 @@ export default function Layout() {
                 const firestoreData = doc.data();
                 // console.log("🔥 Firestore data:", firestoreData);
                 // console.log("🔥 Document ID:", doc.id);
-                
+
                 try {
                   // Get the last message ID from storage each time to ensure we have the latest
                   const storedLastMessageId = await AsyncStorage.getItem('lastMessageId');
                   // console.log("📱 Stored lastMessageId:", storedLastMessageId);
-                  
+
                   // Check if this is actually a new message
                   const isNewMessage = doc.id !== storedLastMessageId;
                   const isFromOtherUser = firestoreData.senderId !== uid;
-                  
+
                   // Only show notification if it's both new and from another user
                   if (isNewMessage && isFromOtherUser) {
                     // console.log("📢 New message detected, showing notification");
                     showNotification(firestoreData.content || "New message received!");
-                    
+
                     // Update the last message ID in both state and storage
                     setLastMessageId(doc.id);
                     await AsyncStorage.setItem('lastMessageId', doc.id);
@@ -155,7 +218,7 @@ export default function Layout() {
                     // console.log("🔄 Message already seen or sent by current user");
                     if (!isNewMessage) console.log("   - Same message ID as stored");
                     if (!isFromOtherUser) console.log("   - Message from current user");
-                    
+
                     // Still update the last message ID to ensure we're tracking the latest
                     if (isNewMessage) {
                       setLastMessageId(doc.id);
@@ -192,14 +255,14 @@ export default function Layout() {
       if (unsubscribe) unsubscribe();
     };
   }, []); // Remove lastMessageId dependency to avoid re-subscribing
-      
+
   return (
     <>
       {/* Custom Popup Notification */}
       {showPopup && (
-        <Animated.View 
+        <Animated.View
           style={[
-            styles.popup, 
+            styles.popup,
             {
               opacity: popupAnimation,
               transform: [
@@ -218,8 +281,8 @@ export default function Layout() {
             <Text style={styles.popupText}>New Message:</Text>
             <Text style={styles.popupText}>{popupMessage}</Text>
           </View>
-          <TouchableOpacity 
-            style={styles.popupClose} 
+          <TouchableOpacity
+            style={styles.popupClose}
             onPress={() => {
               Animated.timing(popupAnimation, {
                 toValue: 0,

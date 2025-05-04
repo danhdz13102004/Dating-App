@@ -329,7 +329,7 @@ const ProfileScreen = () => {
             <View style={styles.settingIconContainer}>
               <Ionicons name="notifications-outline" size={20} color="#FF4D67" />
             </View>
-            <Text style={styles.settingText}>Thông báo</Text>
+            <Text style={styles.settingText}>Notifications  </Text>
             <Switch
               value={notificationEnabled}
               onValueChange={setNotificationEnabled}
@@ -342,7 +342,7 @@ const ProfileScreen = () => {
             <View style={styles.settingIconContainer}>
               <Ionicons name="location-outline" size={20} color="#FF4D67" />
             </View>
-            <Text style={styles.settingText}>Vị trí</Text>
+            <Text style={styles.settingText}>Location</Text>
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
 
@@ -350,7 +350,7 @@ const ProfileScreen = () => {
             <View style={styles.settingIconContainer}>
               <Ionicons name="link-outline" size={20} color="#FF4D67" />
             </View>
-            <Text style={styles.settingText}>Tài khoản liên kết</Text>
+            <Text style={styles.settingText}>Linked Account</Text>
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
 
@@ -358,7 +358,7 @@ const ProfileScreen = () => {
             <View style={styles.settingIconContainer}>
               <Ionicons name="help-circle-outline" size={20} color="#FF4D67" />
             </View>
-            <Text style={styles.settingText}>Trung tâm trợ giúp</Text>
+            <Text style={styles.settingText}>Helps</Text>
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
 
