@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
 import { Colors } from "../../constants/Colors";
@@ -27,6 +28,7 @@ const LoginScreen = () => {
   const [passwordError, setPasswordError] = useState("");
   const [generalError, setGeneralError] = useState("");
   const [userId, setUserId] = useState(null);
+
   const togglePasswordVisibility = () => {
     setPasswordVisible(!passwordVisible);
   };
@@ -156,72 +158,109 @@ const LoginScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.container}
       >
-        <View style={styles.header}>
-          <View style={styles.logoWrapper}>
-            <Text style={styles.logoText}>CUPID ARROW</Text>
-            <Image
-              source={require("../../assets/images/cupid_icon.png")} // Đường dẫn ảnh
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
-          </View>
-          <Text style={styles.tagline}>Meet the right person</Text>
-        </View>
-
-        <View style={styles.formContainer}>
-          <Text style={styles.welcomeText}>Welcome Back</Text>
-          <Text style={styles.subtitleText}>Sign in to continue</Text>
-
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!passwordVisible}
-            />
-            <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={togglePasswordVisibility}
-            >
-              <Icon
-                name={passwordVisible ? "eye" : "eye-off"}
-                size={20}
-                color="#999"
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }} // Ensures the scroll view takes up the full height of the screen
+          showsVerticalScrollIndicator={false} // Hides the vertical scroll indicator
+          keyboardShouldPersistTaps="handled" // Ensures keyboard dismisses when tapping outside of input fields
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.logoWrapper}>
+              <Text style={styles.logoText}>CUPID ARROW</Text>
+              <Image
+                source={require("../../assets/images/cupid_icon.png")} // Đường dẫn ảnh
+                style={styles.logoImage}
+                resizeMode="contain"
               />
+            </View>
+            <Text style={styles.tagline}>Meet the right person</Text>
+          </View>
+
+          {/* Form Container */}
+          <View style={styles.formContainer}>
+            <Text style={styles.welcomeText}>Welcome Back</Text>
+            <Text style={styles.subtitleText}>Sign in to continue</Text>
+
+            {/* Email */}
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  value={email}
+                  onChangeText={(text) => {
+                    setEmail(text)
+                    if (emailError) {
+                      setEmailError('') // Clear error when user starts typing
+                    }
+                  }}
+                  onBlur={validateEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+              <View style={styles.errorContainer}>
+                {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+              </View>
+            </View>
+
+            {/* Password */}
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (passwordError) {
+                      setPasswordError('')
+                    }
+                  }}
+                  onBlur={validatePassword}
+                  secureTextEntry={!passwordVisible}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  style={styles.eyeIcon}
+                  onPress={togglePasswordVisibility}
+                >
+                  <Icon
+                    name={passwordVisible ? "eye" : "eye-off"}
+                    size={20}
+                    color="#999"
+                  />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.errorContainer}>
+                {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+              </View>
+            </View>
+
+            {/* SIGN IN Button */}
+            <TouchableOpacity
+              style={styles.signInButton}
+              onPress={handleLogin} // Function to handle login
+              activeOpacity={0.8}
+            >
+              <Text style={styles.signInText}>SIGN IN</Text>
+            </TouchableOpacity>
+
+            {/* SIGN UP Button */}
+            <TouchableOpacity
+              style={styles.signUpButton}
+              onPress={() => {
+                router.push("/(auth)/register"); // Navigate to the register screen
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.signUpText}>SIGN UP</Text>
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={styles.signInButton}
-            onPress={handleLogin} // Thêm hàm xử lý sự kiện nhấn
-          >
-            <Text style={styles.signInText}>SIGN IN</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.signUpButton}
-            onPress={() => {
-              router.push("/(auth)/register"); // Navigate to the register screen
-            }}
-          >
-            <Text style={styles.signUpText}>SIGNUP</Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -251,51 +290,73 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: 14,
-    color: "#FFFFFF",
-    opacity: 0.8,
+    color: "#FFFFFF"
   },
   formContainer: {
     backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingTop: 30,
-    paddingBottom: 20,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: 25,
+    paddingTop: 25,
+    paddingBottom: 100,
     flex: 1, // Let form container take remaining space
   },
   welcomeText: {
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 5,
+    color: Colors.primaryColor,
   },
   subtitleText: {
     fontSize: 14,
     color: "#888",
-    marginBottom: 30,
+    marginBottom: 20,
   },
   inputContainer: {
-    marginBottom: 15,
+    marginBottom: 10,
+  },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
     position: "relative",
   },
   input: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEE",
-    paddingVertical: 16,
+    flex: 1,
+    height: 50,
+    // paddingVertical: 16,
     fontSize: 16,
+    color: "#333",
+  },
+  errorContainer: {
+    height: 20,
+    justifyContent: 'center',
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  inputError: {
+    borderBottomColor: "#FF3B30",
+  },
+  errorText: {
+    color: "#FF3B30",
+    fontSize: 12,
   },
   eyeIcon: {
-    position: "absolute",
-    right: 0,
-    top: 12,
+    padding: 10
   },
   signInButton: {
     backgroundColor: Colors.primaryColor,
-    paddingVertical: 14,
-    borderRadius: 30,
+    borderRadius: 10,
+    height: 55,
+    justifyContent: "center",
     alignItems: "center",
-    marginTop: 80,
-    marginBottom: 15,
-    borderRadius: 15,
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  signInButtonPressed: {
+    backgroundColor: Colors.secondaryColor,
+    transform: [{ scale: 0.98 }],
   },
   signInText: {
     color: "#FFFFFF",
@@ -305,11 +366,15 @@ const styles = StyleSheet.create({
   signUpButton: {
     borderWidth: 1,
     borderColor: Colors.primaryColor,
-    paddingVertical: 14,
-    borderRadius: 30,
+    height: 55,
+    borderRadius: 10,
+    justifyContent: "center",
     alignItems: "center",
-    borderRadius: 15,
-    marginTop: 70,
+  },
+  signUpButtonPressed: {
+    color: Colors.secondaryColor,
+    borderColor: Colors.secondaryColor,
+    transform: [{ scale: 0.98 }],
   },
   signUpText: {
     color: Colors.primaryColor,
