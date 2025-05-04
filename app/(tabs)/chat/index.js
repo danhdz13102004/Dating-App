@@ -978,7 +978,11 @@ const MessagesScreen = () => {
                             messages.length === 0 ? { flex: 1, justifyContent: 'center' } : null
                         ]}
                         ListEmptyComponent={
-                            <Text style={styles.emptyListText}>Không có tin nhắn nào</Text>
+                            <View style={styles.emptyContainer}>
+                                <Icon name="chat-bubble-outline" size={50} color="#cccccc" />
+                                <Text style={styles.emptyListText}>No messages yet</Text>
+                                <Text style={styles.emptyListSubtext}>Start a new conversation!</Text>
+                            </View>
                         }
                         refreshControl={
                             <RefreshControl
@@ -1533,6 +1537,24 @@ const styles = StyleSheet.create({
     searchResultsWrapper: {
         flex: 1,
         paddingHorizontal: 16,
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 60,
+        height: 300,
+    },
+    emptyListText: {
+        fontSize: 18,
+        fontWeight: '500',
+        color: '#888',
+        marginTop: 15,
+    },
+    emptyListSubtext: {
+        fontSize: 14,
+        color: '#aaa',
+        marginTop: 8,
     },
 });
 
