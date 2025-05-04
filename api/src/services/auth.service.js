@@ -10,6 +10,7 @@ const {
   ConflictRequestError,
   NotFoundError,
 } = require("../core/error.response");
+const { error } = require("console");
 
 class AuthService {
   static register = async ({ name, email, password }) => {
@@ -153,7 +154,7 @@ class AuthService {
       user.password
     );
     if (!isPasswordValid) {
-      throw new UnauthorizedError("Current password is incorrect");
+      throw new Error('Current password is incorrect');
     }
 
     // Mã hóa mật khẩu mới
