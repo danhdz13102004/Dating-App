@@ -400,7 +400,7 @@ async function seedUsers() {
       },
       {
         name: 'Nguyễn Thị Hoài An',
-        email: 'https://i.pinimg.com/736x/1e/b4/d1/1eb4d1008df88ce115657179af8517cb.jpg',
+        email: 'annguyen@gmail.com',
         password: hashedPassword,
         birthday: new Date('2003-09-22'), // 22 tuổi
         location: {
@@ -408,7 +408,7 @@ async function seedUsers() {
           coordinates: danangAreas.sonTra // Quận Sơn Trà
         },
         hobbies: getRandomHobbies(10),
-        avatar: 'https://example.com/avatars/an.jpg',
+        avatar: 'https://i.pinimg.com/736x/1e/b4/d1/1eb4d1008df88ce115657179af8517cb.jpg',
         profileImgs: generateRandomProfileImages(),
         description: 'Photographer yêu biển Đà Nẵng.',
         gender: 'female',
@@ -422,7 +422,7 @@ async function seedUsers() {
       },
       {
         name: 'Phạm Thị Mỹ Linh',
-        email: 'https://i.pinimg.com/736x/a0/ab/95/a0ab95858cf5de2634e369585c244125.jpg',
+        email: 'linhpham@gmail.com',
         password: hashedPassword,
         birthday: new Date('2001-11-05'), // 24 tuổi
         location: {
@@ -430,7 +430,7 @@ async function seedUsers() {
           coordinates: danangAreas.myKhe // Bãi biển Mỹ Khê
         },
         hobbies: getRandomHobbies(10),
-        avatar: 'https://example.com/avatars/linh.jpg',
+        avatar: 'https://i.pinimg.com/736x/a0/ab/95/a0ab95858cf5de2634e369585c244125.jpg',
         profileImgs: generateRandomProfileImages(),
         description: 'HLV bơi lội, yêu biển và nắng.',
         gender: 'female',
