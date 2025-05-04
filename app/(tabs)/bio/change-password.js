@@ -135,6 +135,7 @@ const ChangePasswordScreen = () => {
       });
 
       const data = await response.json();
+      console.log("Response data:", data);
 
       if (response.ok) {
         Alert.alert("Success", "Password changed successfully!", [
@@ -171,12 +172,12 @@ const ChangePasswordScreen = () => {
               />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Change Password</Text>
-            <View style={{ width: 24 }} /> {/* Placeholder for alignment */}
+            <View style={{ width: 24 }} /> 
           </View>
 
           {/* Form */}
           <View style={styles.formContainer}>
-            {/* Current Password */}
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Current Password</Text>
               <View
@@ -211,7 +212,6 @@ const ChangePasswordScreen = () => {
               ) : null}
             </View>
 
-            {/* New Password */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>New Password</Text>
               <View
@@ -225,7 +225,7 @@ const ChangePasswordScreen = () => {
                   placeholder="Enter new password"
                   secureTextEntry={!showNewPassword}
                   value={newPassword}
-                  onChangeText={setNewPassword}
+                  onChangeText={setNewPassword} 
                   onBlur={validateNewPassword}
                 />
                 <TouchableOpacity
@@ -244,7 +244,7 @@ const ChangePasswordScreen = () => {
               ) : null}
             </View>
 
-            {/* Confirm Password */}
+
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Confirm Password</Text>
               <View
@@ -279,7 +279,6 @@ const ChangePasswordScreen = () => {
               ) : null}
             </View>
 
-            {/* Submit Button */}
             <TouchableOpacity
               style={styles.changeButton}
               onPress={handleChangePassword}
