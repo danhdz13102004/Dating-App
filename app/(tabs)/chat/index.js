@@ -1175,8 +1175,9 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
     },
     headerTitle: {
-        fontSize: 28,
-        fontWeight: "bold",
+        fontSize: 24,
+        fontWeight: '700',
+        color: Colors.primaryColor,
     },
     editButton: {
         padding: 8,

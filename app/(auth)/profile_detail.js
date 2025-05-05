@@ -6,8 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
-  Platform,
   Alert,
+  ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { Image } from "expo-image";
 import Icon from "react-native-vector-icons/Feather";
@@ -17,15 +18,19 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import appConfig from "../../configs/config";
 import { jwtDecode } from "jwt-decode";
 import { router } from "expo-router";
+import { Colors } from "../../constants/Colors";
+import { LinearGradient } from "expo-linear-gradient";
+import { MaterialIcons } from "@expo/vector-icons";
 
 const ProfileDetails = () => {
-  const [firstName, setFirstName] = useState("David");
-  const [lastName, setLastName] = useState("Peterson");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [date, setDate] = useState(null);
   const [open, setOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [userId, setUserId] = useState(null);
   const [avatarURL, setAvatarURL] = useState(null);
+  const [updatingAvatar, setUpdatingAvatar] = useState(false);
   const placeholder = require("@/assets/images/placeholder_avatar.png");
 
   useEffect(() => {
@@ -50,20 +55,20 @@ const ProfileDetails = () => {
 
   const pickImageAsync = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 1,
     });
 
-    if (!result.canceled) {
+    if (!result.canceled && result.assets && result.assets.length > 0) {
       setSelectedImage(result.assets[0].uri);
     } else {
-      alert("You did not select any image.");
+      Alert.alert("No Image Selected", "You did not select any image.");
     }
   };
 
   const formatDate = (date) => {
-    if (!date) return "";
+    if (!date) return "Choose birthday date";
     return date.toLocaleDateString("en-US", {
       month: "long",
       day: "numeric",
@@ -95,6 +100,7 @@ const ProfileDetails = () => {
     if (_firstName && _lastName && _birthday && _avatarURL) {
       const url = `${appConfig.API_URL}/user/update`;
       console.log("URL: ", url);
+
       const response = await fetch(url, {
         method: "POST",
         headers: {
@@ -102,7 +108,7 @@ const ProfileDetails = () => {
         },
         body: JSON.stringify({
           userId: _userId,
-          name: _firstName + " " + _lastName, // Matching your server's expected fields
+          name: _firstName + " " + _lastName,
           birthday: _birthday,
           avatarURL: _avatarURL,
         }),
@@ -112,129 +118,173 @@ const ProfileDetails = () => {
         const data = await response.json();
         console.log("Profile updated successfully:", data);
         router.replace("/(auth)/select-gender");
+      } else {
+        Alert.alert("Error", "Failed to update profile. Please try again.");
       }
     } else {
-      alert("Missing important field");
+      Alert.alert("Missing Fields", "Please fill in all required fields.");
     }
   };
 
   const handleConfirm = async () => {
-    console.log("Confirm Button Pressed");
+    if (!selectedImage) {
+      Alert.alert("No Image", "Please select a profile image.");
+      return;
+    }
+    console.log('Confirm button pressed with image:', selectedImage);
     await cloudinaryUpload(selectedImage);
   };
 
   const cloudinaryUpload = async (imagePath) => {
-    const url = process.env.EXPO_PUBLIC_CLOUDINARY_ENDPOINT;
-    const formData = new FormData();
-    const fileName = imagePath.split("/").pop();
-    console.log("File Name: ", fileName);
-    formData.append("file", {
-      uri: imagePath,
-      name: fileName,
-      type: "image/jpg",
-    });
-    formData.append("upload_preset", process.env.EXPO_PUBLIC_CLOUDINARY_PRESET);
-
-    await fetch(url, {
-      method: "POST",
-      body: formData,
-    })
-      .then((response) => {
-        return response.json();
-      })
-      .then((data) => {
-        console.log(data);
-        setAvatarURL(data["url"]);
-        saveToDB(firstName, lastName, date, data["url"], userId);
+    setUpdatingAvatar(true);
+    try {
+      const url = process.env.EXPO_PUBLIC_CLOUDINARY_ENDPOINT;
+      const formData = new FormData();
+      const fileName = imagePath.split("/").pop();
+      formData.append("file", {
+        uri: imagePath,
+        name: fileName,
+        type: "image/jpeg",
       });
-  };
+      formData.append("upload_preset", process.env.EXPO_PUBLIC_CLOUDINARY_PRESET);
 
-  ////////// for test ///////////////////////////////////////////////
-  // const storeData = async (value) => {
-  //   try {
-  //     await AsyncStorage.setItem('authToken', value);
-  //   } catch (e) {
-  //     console.log(e)
-  //   }
-  // };
-  // storeData('67fb1dc83f35cac28bea0ea6');
-  //////////////////////////////////////////////////////////////////
+      const response = await fetch(url, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+
+      if (data.url) {
+        console.log("Image uploaded successfully:", data.url);
+        setAvatarURL(data.url);
+        await saveToDB(firstName, lastName, date, data.url, userId);
+      } else {
+        Alert.alert("Upload Failed", "Failed to upload image. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      Alert.alert("Error", "An error occurred while uploading the image.");
+    } finally {
+      setUpdatingAvatar(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.titleContainer}>
-        <Text style={styles.title}>Profile details</Text>
-      </View>
-
-      <View style={styles.profileImageContainer}>
-        <View style={styles.imageWrapper}>
-          <Image
-            style={styles.profileImage}
-            source={selectedImage}
-            placeholder={placeholder}
-            contentFit="cover"
-            transition={1000}
-          />
-        </View>
-        <TouchableOpacity style={styles.cameraButton}>
-          <Icon
-            name="camera"
-            size={18}
-            color="white"
-            onPress={pickImageAsync}
-          />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.form}>
-        {/* First Name */}
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>First name</Text>
-          <TextInput
-            style={styles.input}
-            value={firstName}
-            onChangeText={setFirstName}
-          />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Profile Details</Text>
         </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Last name</Text>
-          <TextInput
-            style={styles.input}
-            value={lastName}
-            onChangeText={setLastName}
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Birthday</Text>
-          <TouchableOpacity
-            style={date ? styles.dateInput : styles.birthdayButton}
-            onPress={showDatePicker}
+        {/* Profile Image */}
+        <View style={styles.profileContainer}>
+          <LinearGradient
+            colors={[Colors.primaryColor, "#FF758C", Colors.secondaryColor, "#FF9A8B"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.gradientAvatarBorder}
           >
-            <Icon
-              name="calendar"
-              size={20}
-              color="#E57373"
-              style={styles.calendarIcon}
-            />
-            <Text style={date ? styles.dateText : styles.birthdayText}>
-              {date ? formatDate(date) : "Choose birthday date"}
-            </Text>
-          </TouchableOpacity>
+            <View style={styles.profileAvatarWrapper}>
+              <Image
+                style={styles.profileImage}
+                source={selectedImage ? { uri: selectedImage } : placeholder}
+                placeholder={placeholder}
+                contentFit="cover"
+                transition={500}
+              />
+              {updatingAvatar && (
+                <View style={styles.avatarLoadingOverlay}>
+                  <ActivityIndicator size="large" color={Colors.primaryColor} />
+                </View>
+              )}
+            </View>
+            <TouchableOpacity
+              style={styles.cameraButton}
+              onPress={pickImageAsync}
+              disabled={updatingAvatar}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="add-a-photo" size={20} color="#FFF" />
+            </TouchableOpacity>
+          </LinearGradient>
         </View>
 
-        <DateTimePickerModal
-          isVisible={open}
-          mode="date"
-          onConfirm={handleSelect}
-          onCancel={hideDatePicker}
-        />
+        {/* Form Fields */}
+        <View style={styles.form}>
+          {/* First Name */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>First Name</Text>
+            <TextInput
+              style={styles.input}
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholder="Enter your first name"
+              placeholderTextColor="#B0B0B0"
+            />
+          </View>
 
-        <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
-          <Text style={styles.confirmText}>Confirm</Text>
+          {/* Last Name */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Last Name</Text>
+            <TextInput
+              style={styles.input}
+              value={lastName}
+              onChangeText={setLastName}
+              placeholder="Enter your last name"
+              placeholderTextColor="#B0B0B0"
+            />
+          </View>
+
+          {/* Birthday */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Birthday</Text>
+            <TouchableOpacity
+              style={styles.dateInput}
+              onPress={showDatePicker}
+            >
+              <Icon
+                name="calendar"
+                size={20}
+                color={Colors.primaryColor}
+                style={styles.calendarIcon}
+              />
+              <Text style={styles.dateText}>
+                {formatDate(date)}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <DateTimePickerModal
+            isVisible={open}
+            mode="date"
+            onConfirm={handleSelect}
+            onCancel={hideDatePicker}
+            maximumDate={new Date()}
+          />
+        </View>
+        {/* Confirm Button */}
+        <TouchableOpacity
+          style={[styles.confirmButton, updatingAvatar && styles.disabledButton]}
+          onPress={handleConfirm}
+          disabled={updatingAvatar}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={[Colors.primaryColor, Colors.secondaryColor]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.gradientButton}
+          >
+            <Text style={styles.confirmText}>
+              {updatingAvatar ? "Uploading..." : "Confirm"}
+            </Text>
+          </LinearGradient>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -242,107 +292,155 @@ const ProfileDetails = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
-    paddingHorizontal: 24,
-    paddingTop: 20,
+    // backgroundColor: "#FFF8F9",
+    backgroundColor: "#FFFFFF",
   },
-  titleContainer: {
-    marginTop: 60,
-    marginBottom: 60,
+  scrollContent: {
+    paddingBottom: 60,
+    paddingHorizontal: 24,
+  },
+
+  /**
+   * Header Styles
+   */
+  header: {
+    alignItems: "center",
+    marginTop: 20,
+    marginBottom: 30,
   },
   title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    textAlign: "center",
+    fontSize: 28,
+    fontWeight: "700",
+    color: Colors.primaryColor,
   },
-  profileImageContainer: {
+
+  /**
+   * Profile Image Styles
+   */
+  profileContainer: {
     alignItems: "center",
-    marginBottom: 60,
+    marginBottom: 40,
+  },
+
+  gradientAvatarBorder: {
+    width: 160,
+    height: 160,
+    borderRadius: 160 / 2,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
     position: "relative",
   },
-  imageWrapper: {
-    width: 110,
-    height: 110,
-    borderRadius: 25,
-    backgroundColor: "#EEEEEE",
+  profileAvatarWrapper: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
     overflow: "hidden",
+    backgroundColor: "#FFF",
   },
   profileImage: {
     width: "100%",
     height: "100%",
   },
-  cameraButton: {
-    position: "absolute",
-    bottom: 0,
-    right: "35%",
-    backgroundColor: "#E57373",
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  avatarLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
+    borderRadius: 75,
   },
+  cameraButton: {
+    position: "absolute",
+    bottom: 4,
+    right: 4,
+    backgroundColor: Colors.primaryColor,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#FFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
+  /**
+   * Form Styles
+   */
   form: {
+    flex: 1,
     width: "100%",
+    marginBottom: 140,
   },
   inputContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   label: {
-    color: "#9E9E9E",
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#666",
     marginBottom: 8,
-    fontWeight: "400",
   },
   input: {
-    backgroundColor: "white",
+    backgroundColor: "#FFF",
     borderWidth: 1,
     borderColor: "#E0E0E0",
-    borderRadius: 16,
-    padding: 16,
-    fontSize: 16,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: "#333",
     fontWeight: "500",
-    color: "#212121",
-  },
-  birthdayButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFEBEE",
-    borderRadius: 16,
-    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   dateInput: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: "#FFEBEE",
+    borderRadius: 12,
+    padding: 14,
   },
   calendarIcon: {
     marginRight: 12,
   },
-  birthdayText: {
-    color: "#E57373",
-    fontSize: 16,
-  },
   dateText: {
-    color: "#212121",
-    fontSize: 16,
+    fontSize: 15,
+    color: "#333",
     fontWeight: "500",
   },
   confirmButton: {
-    backgroundColor: "#E57373",
-    borderRadius: 16,
+    marginTop: 20,
+    borderRadius: 12,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  gradientButton: {
     padding: 16,
     alignItems: "center",
-    marginTop: 96,
   },
   confirmText: {
-    color: "white",
+    color: "#FFF",
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "600",
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
 });
 

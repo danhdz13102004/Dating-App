@@ -107,17 +107,17 @@ const HobbySelector = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
+        {/* <TouchableOpacity style={styles.backButton}>
           <MaterialIcons
             style={{ marginLeft: 5 }}
             name="arrow-back-ios"
             size={20}
             color={Colors.primaryColor}
           />
-        </TouchableOpacity>
-        <TouchableOpacity>
+        </TouchableOpacity> */}
+        {/* <TouchableOpacity>
           <Text style={styles.skipText}>Skip</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       {/* Title */}
