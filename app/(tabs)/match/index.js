@@ -24,6 +24,7 @@ import {
   serverTimestamp,
   addDoc,
 } from "firebase/firestore";
+import { Colors } from '../../../constants/Colors';
 
 const MatchCard = ({ name, age, imageUrl, onRemove, onLike }) => {
   return (
@@ -496,7 +497,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: Colors.primaryColor
   },
   filterButton: {
     width: 40,

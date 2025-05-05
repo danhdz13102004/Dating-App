@@ -17,8 +17,6 @@ import { Colors } from '../../constants/Colors'
 import { router } from 'expo-router'
 import appConfig from '../../configs/config'
 
-
-
 const Register = ({ navigation }) => {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -407,7 +405,7 @@ const styles = StyleSheet.create({
     height: 55,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 20,
     marginBottom: 20,
   },
   signUpButtonText: {

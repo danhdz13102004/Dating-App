@@ -706,8 +706,9 @@ const MatchScreen = () => {
                 color={Colors.primaryColor}
               />
             </TouchableOpacity>
+            <Text style={styles.headerTitle}>Discover</Text>
             <TouchableOpacity
-              style={styles.backButton}
+              style={styles.filterButton}
               onPress={toggleFiltersModal}
             >
               <FontAwesome5
@@ -1088,14 +1089,14 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingTop: Platform.OS === "android" ? 25 : 0,
+    // paddingTop: Platform.OS === "android" ? 25 : 0,
   },
   container: {
     flex: 1,
     backgroundColor: "#fff",
   },
   headerContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
     zIndex: 10,
     backgroundColor: "#fff",
   },
@@ -1105,9 +1106,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 0,
   },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.primaryColor,
+  },
   backButton: {
-    borderWidth: 1,
-    borderColor: "#ccc",
+    borderRadius: 10,
+    padding: 10,
+  },
+  filterButton: {
     borderRadius: 10,
     padding: 10,
   },

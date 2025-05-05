@@ -153,6 +153,7 @@ const ProfileScreen = () => {
       // Create form data for upload
       const formData = new FormData() // multipart/form-data
       const filename = imageUri.split('/').pop()
+      console.log('Filename upload:', filename)
       const match = /\.(\w+)$/.exec(filename) // File extension .jpg, .png, .jpeg,..
       const type = match ? `image/${match[1]}` : 'image'  // Image type image/jpg, image/png
       
@@ -179,6 +180,7 @@ const ProfileScreen = () => {
       
       if (data.secure_url) {
         // Update avatar in database with the Cloudinary URL
+        console.log('Cloudinary avatar URL:', data.secure_url)
         await updateAvatarInDatabase(data.secure_url)
       } else {
         throw new Error('Failed to upload image to Cloudinary')
@@ -260,9 +262,9 @@ const ProfileScreen = () => {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          {/* <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#FF4D67" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <Text style={styles.headerTitle}>Profile</Text>
           <TouchableOpacity style={styles.menuButton}>
             <Ionicons name="menu-outline" size={24} color="#FF4D67" />
@@ -420,8 +422,8 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '700',
     color: Colors.primaryColor,
   },
 

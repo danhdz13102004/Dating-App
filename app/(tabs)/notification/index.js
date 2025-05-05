@@ -24,6 +24,7 @@ import {
   orderBy,
   limit,
 } from "firebase/firestore";
+import { Colors } from '../../../constants/Colors';
 
 
 const time_format = (isoTime) => {
@@ -206,9 +207,9 @@ const NotificationsScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.notificationHeader}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        {/* <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <AntDesign name="left" size={24} color="white" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <Text style={styles.notificationTitle}>Notification</Text>
         <TouchableOpacity style={styles.moreButton}>
           <Ionicons name="ellipsis-vertical" size={24} color="black" />
@@ -276,6 +277,7 @@ const styles = StyleSheet.create({
   notificationTitle: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: Colors.primaryColor,
   },
   moreButton: {
     padding: 5,

@@ -68,10 +68,18 @@ const GenderSelectionScreen = () => {
     }
   };
 
+  const handleSkip = () => {
+    router.push("/(auth)/select-hobbies")
+  }
+
+  const handleBack = () => {
+    router.push("/(auth)/profile-details")
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
+        {/* <TouchableOpacity style={styles.backButton}>
           <MaterialIcons
             style={{ marginLeft: 5 }}
             name="arrow-back-ios"
@@ -81,7 +89,8 @@ const GenderSelectionScreen = () => {
         </TouchableOpacity>
         <TouchableOpacity>
           <Text style={styles.skipText}>Skip</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
+        <Text style={styles.headerTitle}>Gender Selection</Text>
       </View>
 
       <View style={styles.content}>
@@ -94,6 +103,7 @@ const GenderSelectionScreen = () => {
               selectedGender === "female" && styles.optionSelected,
             ]}
             onPress={() => setSelectedGender("female")}
+            activeOpacity={0.8}
           >
             <Text
               style={[
@@ -114,6 +124,7 @@ const GenderSelectionScreen = () => {
               selectedGender === "male" && styles.optionSelected,
             ]}
             onPress={() => setSelectedGender("male")}
+            activeOpacity={0.8}
           >
             <Text
               style={[
@@ -136,8 +147,16 @@ const GenderSelectionScreen = () => {
             onPress={() => {
               setSelectedGender("other");
             }}
+            activeOpacity={0.8}
           >
-            <Text style={styles.optionText}>Choose another</Text>
+            <Text 
+              style={[
+                styles.optionText,
+                selectedGender === "other" && styles.optionTextSelected,
+              ]}
+            >
+              Choose another
+            </Text>
             <MaterialIcons
               style={{ marginLeft: 5 }}
               name="arrow-forward-ios"
@@ -151,7 +170,11 @@ const GenderSelectionScreen = () => {
         </View>
       </View>
 
-      <TouchableOpacity style={styles.continueButton} onPress={updateGender}>
+      <TouchableOpacity 
+        style={styles.continueButton}
+        onPress={updateGender}
+        activeOpacity={0.8}
+      >
         <Text style={styles.continueText}>Continue</Text>
       </TouchableOpacity>
     </View>
@@ -162,13 +185,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#ffffff",
-    padding: 45,
+    paddingTop: 20,
+    paddingBottom: 50,
+    paddingHorizontal: 24,
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: Colors.primaryColor,
   },
   backButton: {
     borderWidth: 1,
@@ -191,8 +221,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     lineHeight: 1.5 * 34,
     fontFamily: "System",
-    marginTop: 50,
-    marginBottom: 70,
+    marginTop: 70,
+    marginBottom: 50,
   },
   optionsContainer: {
     marginTop: 30,
@@ -205,7 +235,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     borderWidth: 1,
     borderColor: "#e0e0e0",
-    marginBottom: 15,
+    marginBottom: 20,
     height: 60,
   },
   optionSelected: {
@@ -229,7 +259,7 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     backgroundColor: Colors.primaryColor,
-    marginBottom: 30,
+    marginBottom: 10,
     alignItems: "center",
     justifyContent: "center",
     padding: 16,
