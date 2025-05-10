@@ -17,7 +17,12 @@ class AuthController {
       const result = await AuthService.login({ email, password });
       return res.status(200).json(result);
     } catch (error) {
-      next(error);
+      console.error(`[P]::Login::Error::`, error);
+    // Trả về thông báo lỗi thân thiện
+    return res.status(error.statusCode || 500).json({
+      status: "error",
+      message: error.message || "Internal server error",
+    });
     }
   };
 

@@ -5,10 +5,13 @@ const { hashPassword, comparePassword } = require("../utils/bcrypt");
 const crypto = require("crypto");
 const HttpStatus = require("../core/httpStatus");
 const jwt = require("jsonwebtoken");
-
 const {
   ConflictRequestError,
   NotFoundError,
+  UnauthorizedError,
+  AppError,
+  BadRequestError,
+  ForbiddenError,
 } = require("../core/error.response");
 const { error } = require("console");
 
@@ -17,7 +20,7 @@ class AuthService {
     // Check email exists
     const emailExists = await User.findOne({ email }).lean();
     if (emailExists) {
-      throw new ConflictRequestError("Email already exists");
+      throw new ConflictRequestError("Email đã tồn tại!. Vui lòng thử lại.");
     }
 
     // Creteate User & Add to database
@@ -50,14 +53,14 @@ class AuthService {
     const user = await User.findOne({ email }).lean();
     if (!user) {
       console.log("Email không tồn tại");
-      throw new UnauthorizedError("Email không tồn tại");
+      throw new UnauthorizedError("Email không tồn tại. Vui lòng kiểm tra lại.");
     }
 
     // Kiểm tra mật khẩu
     const isPasswordValid = await comparePassword(password, user.password);
     if (!isPasswordValid) {
       console.log("Mật khẩu không đúng");
-      throw new UnauthorizedError("Mật khẩu không đúng");
+      throw new UnauthorizedError("Sai mật khẩu. Vui lòng nhập lại.");
     }
 
     // Tạo token JWT chỉ chứa userId

@@ -37,7 +37,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../../firebaseConfig";
 import { useFocusEffect } from 'expo-router';
-
+import {useToast} from "../../../context/ToastContext"
 // Cloudinary configuration
 const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dmw4uwbpl/upload";
 const CLOUDINARY_PRESET = "test_upload";
@@ -67,7 +67,7 @@ const MessagesScreen = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-
+    const { showToast } = useToast();
 
     const time_format = (isoTime) => {
         const time = Math.max(0, Math.floor((new Date() - new Date(isoTime)) / 1000));
@@ -494,7 +494,7 @@ const MessagesScreen = () => {
                 });
             }
             else {
-                Alert.alert('Warning', 'You dont have any post!')
+                showToast('You dont have any post!','warning');
                 return;
             }
         } else {
@@ -511,7 +511,7 @@ const MessagesScreen = () => {
             const galleryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
             if (galleryStatus.status !== 'granted') {
-                Alert.alert('Permission required', 'Please allow access to your photo library to upload images.');
+                showToast('Please allow access to your photo library to upload images.','info');
                 return;
             }
 
@@ -529,7 +529,7 @@ const MessagesScreen = () => {
             }
         } catch (error) {
             console.error('Error picking image:', error);
-            Alert.alert('Error', 'Failed to pick image. Please try again.');
+            showToast('Failed to pick image. Please try again.',"error");
         }
 
         setModalVisible(false);
@@ -563,7 +563,7 @@ const MessagesScreen = () => {
             }
         } catch (error) {
             console.error("Error uploading to Cloudinary:", error);
-            Alert.alert("Upload Error", "Failed to upload image to Cloudinary. Please try again.");
+            showToast("Failed to upload image to Cloudinary. Please try again.","error");
             throw error;
         } finally {
             setUploading(false);
@@ -588,7 +588,7 @@ const MessagesScreen = () => {
             const result = await response.json();
 
             if (result.status === "success") {
-                Alert.alert('Success', 'Post created successfully!');
+                showToast('Post is created successfully!',"success");
 
                 // Update myPost with the newly created post
                 if (result.data) {
@@ -603,17 +603,17 @@ const MessagesScreen = () => {
                 setUploadedImageUrl(null);
                 setShowPostModal(false);
             } else {
-                Alert.alert('Error', result.message || 'Failed to create post');
+               showToast(result.message || 'Failed to create post',"error");
             }
         } catch (error) {
             console.error('Error creating post:', error);
-            Alert.alert('Error', 'Failed to create post. Please try again.');
+            showToast('Failed to create post. Please try again.',"error");
         }
     };
 
     const uploadImageAndCreatePost = async () => {
         if (!selectedImage) {
-            Alert.alert('Error', 'No image selected');
+            showToast('No image selected','error');
             return;
         }
 
@@ -627,7 +627,7 @@ const MessagesScreen = () => {
             }
         } catch (error) {
             console.error('Error in upload and post creation:', error);
-            Alert.alert('Error', 'Failed to process image and create post');
+            showToast('Failed to process image and create post','error');
         } finally {
             setUploading(false);
         }
@@ -651,14 +651,14 @@ const MessagesScreen = () => {
                     ...prev,
                     avatar: result.data.avatar || 'https://via.placeholder.com/150'
                 }));
-                Alert.alert('Success', 'Profile image removed successfully');
+                showToast('Profile image removed successfully','success');
             } else {
                 setMyPost(null);
-                Alert.alert('Success', result.message || 'Failed to remove profile image');
+                showToast(result.message || 'Failed to remove profile image',"success");
             }
         } catch (error) {
             console.error('Error removing image:', error);
-            Alert.alert('Error', 'Failed to remove image. Please try again.');
+           showToast('Failed to remove image. Please try again.','error');
         }
 
         setModalVisible(false);

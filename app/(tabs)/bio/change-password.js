@@ -18,6 +18,7 @@ import { jwtDecode } from "jwt-decode";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../../constants/Colors";
 import appConfigs from "../../../configs/config";
+import { useToast } from "../../../context/ToastContext";
 
 const API_URL = appConfigs.API_URL;
 
@@ -30,7 +31,7 @@ const ChangePasswordScreen = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
+  const {showToast } = useToast();
   // Error states
   const [currentPasswordError, setCurrentPasswordError] = useState("");
   const [newPasswordError, setNewPasswordError] = useState("");
@@ -138,15 +139,14 @@ const ChangePasswordScreen = () => {
       console.log("Response data:", data);
 
       if (response.ok) {
-        Alert.alert("Success", "Password changed successfully!", [
-          { text: "OK", onPress: () => router.back() },
-        ]);
+        showToast("Đổi mặt khẩu mới thành công", "success");
+        router.back();
       } else {
-        Alert.alert("Error", data.message || "Failed to change password");
+        showToast(data.message || "Failed to change password","error");
       }
     } catch (error) {
       console.error("Error changing password:", error);
-      Alert.alert("Error", "An error occurred. Please try again.");
+     showToast("Error", "An error occurred. Please try again.","error");
     } finally {
       setLoading(false);
     }
