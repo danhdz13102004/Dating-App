@@ -1,5 +1,8 @@
 "use strict";
 
+const {db} = require("../configs/firebase.config")
+const {collection, serverTimestamp, addDoc} = require("firebase/firestore")
+
 const User = require("../models/User");
 const Conversation = require("../models/Conversation");
 const { NotFoundError, ConflictRequestError } = require("../core/error.response");
@@ -368,6 +371,42 @@ class MatchService {
         }
       }
     }
+
+    static notifyMatchUser = async ({ currentUserId, targetUserId }) => {
+        if (!currentUserId || !targetUserId) {
+            throw new Error("Both currentUserId and targetUserId are required");
+        }
+
+        const currentUser = await User.findById(currentUserId);
+        const targetUser = await User.findById(targetUserId);
+
+
+        const requestedMatchesSubcollectionRef = collection(
+          db,
+          `requestedMatches/${targetUser.id}/requestedMatches`,
+        );
+  
+        const newRequestedmatch = {
+          content: `${currentUser.name} has sent a match to you`,
+          id_user: targetUser.id,
+          createdAt: serverTimestamp(),
+          sender: {
+            _id: currentUser.id,
+            avatar: currentUser.avatar,
+          }
+        };
+        
+        await addDoc(requestedMatchesSubcollectionRef, newRequestedmatch);
+
+        return {
+            status: "success",
+            message: "Match request added to firebase successfully.",
+            data: {
+                newRequestedmatch,
+            },
+        };
+
+    };
 }
 
 module.exports = MatchService
