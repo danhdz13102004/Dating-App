@@ -26,4 +26,7 @@ router.put('/:id/preferences', asyncHandler(matchController.updatePreferences))
 // API lấy preference của người dùng
 router.get('/:id/preferences', asyncHandler(matchController.getPreferences))
 
+// API để xử lý hành động thông báo request Match người dùng
+router.post("/:id/request-match-notify", asyncHandler(matchController.requestMatchNotify));
+
 module.exports = router

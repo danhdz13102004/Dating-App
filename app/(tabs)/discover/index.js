@@ -485,10 +485,38 @@ const MatchScreen = () => {
 
       const data = await response.json();
       console.log("Like response: ", data);
+
     } catch (error) {
       console.error("Error liking user:", error);
     }
   };
+
+  // Send to firebase match request for notify - Call request match notify API /match/:id/request-match-notify
+  const callAPIToSendToFB = async (swipedUserId) => {
+    if (!userId) return;
+
+    try {
+      
+      // GỌI API GỬI FIREBASE ĐỂ THÔNG BÁO
+      const response = await fetch(`${API_URL}/match/${userId}/request-match-notify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: swipedUserId }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log("Match notify response: ", data);
+
+    } catch (error) {
+      console.error("Error match notify:", error);
+    }
+  };
+
 
   // Handle dislike/skip action - Call dislike API /match/:id/dislike
   const handleSkip = async (swipedUserId) => {
@@ -552,6 +580,7 @@ const MatchScreen = () => {
     // Handle the swipe action based on the direction
     if (direction === "right") {
       handleLike(swipedUserId);
+      callAPIToSendToFB(swipedUserId);
     } else if (direction === "left") {
       handleSkip(swipedUserId);
     }
