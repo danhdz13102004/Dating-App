@@ -104,6 +104,15 @@ const ProfileScreen = () => {
   const navigateToChangePassword = () => {
     router.push('/(tabs)/bio/change-password');
   };
+
+  const navigateToScanQR = () => {
+    router.push('/(tabs)/bio/scan-qr');
+  };
+
+  const navigateToMyQR = () => {
+    router.push('/(tabs)/bio/my-qr');
+  };
+
   // Logout function - Delete user token and redirect to login page
   const handleLogout = async () => {
     try {
@@ -266,9 +275,17 @@ const ProfileScreen = () => {
             <Ionicons name="arrow-back" size={24} color="#FF4D67" />
           </TouchableOpacity> */}
           <Text style={styles.headerTitle}>Profile</Text>
-          <TouchableOpacity style={styles.menuButton}>
-            <Ionicons name="menu-outline" size={24} color="#FF4D67" />
-          </TouchableOpacity>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity style={styles.iconButton} onPress={navigateToMyQR}>
+              <Ionicons name="qr-code" size={24} color="#FF4D67" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconButton} onPress={navigateToScanQR}>
+              <Ionicons name="scan-outline" size={24} color="#FF4D67" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.menuButton}>
+              <Ionicons name="menu-outline" size={24} color="#FF4D67" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Profile view */}
@@ -417,6 +434,14 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 4,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconButton: {
+    padding: 4,
+    marginRight: 10,
   },
   menuButton: {
     padding: 4,

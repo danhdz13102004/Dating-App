@@ -383,7 +383,7 @@ class MatchService {
 
         const requestedMatchesSubcollectionRef = collection(
           db,
-          `requestedMatches/${targetUser.id}/requestedMatches`,
+          `acceptedMatches/${targetUser.id}/acceptedMatches`,
         );
   
         const newRequestedmatch = {
