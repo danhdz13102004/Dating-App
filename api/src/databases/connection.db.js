@@ -4,8 +4,8 @@ const databaseConfig = require('../configs/database.config')
 
 class Database {
   constructor() {
-    this.connectionString = databaseConfig.MONGO_URI || `mongodb://${databaseConfig.MONGO_HOST}:${databaseConfig.MONGO_PORT}/${databaseConfig.MONGO_DB}`
-    // this.connectionString = "mongodb+srv://danh:danh123@cluster0.dm0mkbn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+    // this.connectionString = databaseConfig.MONGO_URI || `mongodb://${databaseConfig.MONGO_HOST}:${databaseConfig.MONGO_PORT}/${databaseConfig.MONGO_DB}`
+    this.connectionString = "mongodb+srv://danh:danh123@cluster0.dm0mkbn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
     console.log('Database connection string:', this.connectionString)
     this.connection = null
   }
