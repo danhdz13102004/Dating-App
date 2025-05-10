@@ -259,6 +259,38 @@ const LoginScreen = () => {
             >
               <Text style={styles.signUpText}>SIGN UP</Text>
             </TouchableOpacity>
+
+            {/* Social Login */}
+            <View style={styles.socialLoginContainer}>
+              <View style={styles.dividerContainer}>
+                <View style={styles.divider} />
+                <Text style={styles.dividerText}>OR</Text>
+                <View style={styles.divider} />
+              </View>
+
+              <Text style={styles.socialText}>Sign in with</Text>
+
+              <View style={styles.socialIconsContainer}>
+                <TouchableOpacity style={styles.iconButton} onPress={() => handleGoogleLogin()}>
+                  <Image
+                    source={require('../../assets/images/google-icon.png')}
+                    style={styles.roundedSocialIcon}
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.iconButton} onPress={() => handleFacebookLogin()}>
+                  <Image
+                    source={require('../../assets/images/facebook-icon.png')}
+                    style={styles.roundedSocialIcon}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.termsText}>
+                By signing in, you agree to our <Text style={styles.termsLink}>Terms</Text> and
+                <Text style={styles.termsLink}> Privacy Policy</Text>
+              </Text>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -385,6 +417,52 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     // marginBottom: 10,
+  },
+  socialLoginContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E0E0E0',
+  },
+  dividerText: {
+    marginHorizontal: 10,
+    fontSize: 14,
+    color: '#888',
+  },
+  socialText: {
+    fontSize: 14,
+    color: '#888',
+    marginBottom: 10,
+  },
+  socialIconsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  iconButton: {
+    marginHorizontal: 20,
+  },
+  roundedSocialIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  termsText: {
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
+  },
+  termsLink: {
+    color: Colors.primaryColor,
+    textDecorationLine: 'underline',
   },
 });
 
