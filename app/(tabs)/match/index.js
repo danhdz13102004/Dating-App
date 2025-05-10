@@ -25,7 +25,7 @@ import {
   addDoc,
 } from "firebase/firestore";
 import { Colors } from '../../../constants/Colors';
-
+import { useToast } from "../../../context/ToastContext";
 const MatchCard = ({ name, age, imageUrl, onRemove, onLike }) => {
   return (
     <View style={styles.matchCard}>
@@ -52,6 +52,7 @@ const MatchCard = ({ name, age, imageUrl, onRemove, onLike }) => {
 };
 
 const MatchesScreen = () => {
+  const { showToast } = useToast();
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -90,7 +91,7 @@ const MatchesScreen = () => {
         return id;
       } catch (decodeError) {
         console.error('Error decoding token:', decodeError);
-        Alert.alert('Authentication Error', 'Your session has expired. Please log in again.');
+        showToast('Your session has expired. Please log in again.','error');
         router.replace('/(auth)/login');
         return null;
       }
@@ -230,11 +231,11 @@ const MatchesScreen = () => {
                 } else {
                   const errorText = await response.text();
                   console.error('API error response:', errorText);
-                  Alert.alert('Error', 'Unable to remove match');
+                  showToast('Unable to remove match', 'error');
                 }
               } catch (error) {
                 console.error('Error removing match:', error);
-                Alert.alert('Error', 'Unable to remove match');
+                showToast('Unable to remove match', 'error');
               } finally {
                 setLoading(false);
               }
@@ -244,7 +245,7 @@ const MatchesScreen = () => {
       );
     } catch (error) {
       console.error('Error in handleRemoveMatch:', error);
-      Alert.alert('Error', 'Unable to process your request');
+      showToast('Unable to process your request','error');
     }
   };
 
@@ -332,15 +333,15 @@ const MatchesScreen = () => {
         // Cập nhật UI bằng cách loại bỏ match đã like
         setMatches(prevMatches => prevMatches.filter(match => (match._id || match.id) !== id));
         console.log('Match liked successfully');
-        Alert.alert('Success', 'Match liked successfully!');
+        showToast('Match liked successfully!','success');
       } else {
         const errorText = await response.text();
         console.error('API error response:', errorText);
-        Alert.alert('Error', 'Unable to like match');
+        showToast('Unable to like match','error');
       }
     } catch (error) {
       console.error('Error liking match:', error);
-      Alert.alert('Error', 'Unable to like match');
+      showToast('Unable to like match','error');
     } finally {
       setLoading(false);
     }

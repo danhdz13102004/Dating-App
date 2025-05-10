@@ -16,8 +16,10 @@ import { Ionicons } from '@expo/vector-icons'
 import { Colors } from '../../constants/Colors'
 import { router } from 'expo-router'
 import appConfig from '../../configs/config'
+import { useToast } from "../../context/ToastContext";
 
 const Register = ({ navigation }) => {
+  const { showToast } = useToast();
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -127,16 +129,17 @@ const Register = ({ navigation }) => {
         if (response.ok) {
           // Registration successful
           console.log('Registration successful:', data)
-          alert('Registration successful!')
-
+          showToast("Đăng kí tài khoản mới thành công", "success");
           router.push('(auth)/login')
         } else {
           // Registration failed - show error message from server
           console.log('Registration failed:', data)
+          showToast(data.message || 'Đăng ký thất bại. Vui lòng thử lại.', "error");
           setGeneralError(data.message || 'Registration failed. Please try again.')
         }
       } catch (error) {
-        console.error('Registration error:', error)
+        console.error('Registration error:', error);
+        showToast("Network error. Please check your connection.", "error");
         setGeneralError('Network error. Please check your connection and try again.')
       }
     }

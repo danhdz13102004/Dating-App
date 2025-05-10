@@ -23,7 +23,7 @@ import * as ImagePicker from 'expo-image-picker'
 import { jwtDecode } from 'jwt-decode'
 import configs from '../../../configs/config'
 import DateTimePickerModal from 'react-native-modal-datetime-picker'
-
+import { useToast } from "../../../context/ToastContext";
 // API Configuration & Cloudinary setup
 const API_URL = configs.API_URL
 const CLOUDINARY_ENDPOINT = process.env.EXPO_PUBLIC_CLOUDINARY_ENDPOINT
@@ -83,6 +83,8 @@ const EditProfileScreen = () => {
   const gridItemRefs = useRef(Array(9).fill(null).map(() => React.createRef()))
   const gridItemPositions = useRef([])  // Save object position for each item
 
+  // Toast context for notifications
+  const {showToast } = useToast();
   const fetchUserId = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken')
@@ -558,7 +560,7 @@ const EditProfileScreen = () => {
       console.log("Profile update response:", result)
   
       if (result.status === "success") {
-        Alert.alert("Success", "Profile updated successfully!")
+        showToast("Cập nhật profile thành công", "success");
         setHasChanges(false)
         setNewImageUploads([]) // Reset new uploads tracking
   
@@ -569,10 +571,7 @@ const EditProfileScreen = () => {
       }
     } catch (error) {
       console.error("Error updating profile:", error)
-      Alert.alert(
-        "Error",
-        `Failed to save profile: ${error.message}. Please try again.`
-      )
+      showToast("Cập nhật profile thất bại", "error");
     } finally {
       setLoading(false)
       setUploadingImages(false)

@@ -16,8 +16,10 @@ import { Image } from "react-native";
 import { router } from "expo-router";
 import appConfig from "../../configs/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useToast } from "../../context/ToastContext";
 
 const LoginScreen = () => {
+  const { showToast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -114,6 +116,9 @@ const LoginScreen = () => {
             await AsyncStorage.setItem("authToken", data.data.token);
             console.log("Token saved to AsyncStorage successfully");
 
+            // Show success toast
+            showToast("Login successful!", "success");
+
             //Get userid from data
             const userId = data.data.user.id;
             console.log("User ID:", userId);
@@ -139,6 +144,8 @@ const LoginScreen = () => {
         } else {
           // Login failed - show error message from server
           console.log("Login failed:", data);
+          // Show error toast
+          showToast(data.message || "Đăng nhập thất bại. Vui lòng thử lại.", "error");
           setGeneralError(
             data.message ||
             "Login failed. Please check your credentials and try again."
@@ -146,6 +153,7 @@ const LoginScreen = () => {
         }
       } catch (error) {
         console.error("Login error:", error);
+        showToast("Network error. Please check your connection.", "error");
         setGeneralError(
           "Network error. Please check your connection and try again."
         );

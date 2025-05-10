@@ -42,12 +42,17 @@ class ConflictRequestError extends AppError {
     super(message, HttpStatus.CONFLICT.code)
   }
 }
-
+class UnauthorizedError extends AppError {
+  constructor(message = 'Unauthorized') {
+    super(message, HttpStatus.UNAUTHORIZED.code)
+  }
+}
 module.exports = {
   AppError,
   BadRequestError,
   AuthFailureError,
   NotFoundError,
   ForbiddenError,
-  ConflictRequestError
+  ConflictRequestError,
+  UnauthorizedError
 }
