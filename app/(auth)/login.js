@@ -17,6 +17,28 @@ import { router } from "expo-router";
 import appConfig from "../../configs/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useToast } from "../../context/ToastContext";
+import * as AuthSession from "expo-auth-session";
+import * as WebBrowser from "expo-web-browser";
+
+WebBrowser.maybeCompleteAuthSession()
+
+const FB_APP_ID = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID
+const FB_APP_SECRET = process.env.EXPO_PUBLIC_FACEBOOK_APP_SECRET
+
+console.log('FB_APP_ID:', FB_APP_ID)
+console.log('FB_APP_SECRET:', FB_APP_SECRET)
+
+// const FB_REDIRECT_URI = AuthSession.makeRedirectUri({
+//   schema: 'datingapp',
+//   path: 'auth/facebook/callback'
+// })
+
+const FB_REDIRECT_URI = AuthSession.makeRedirectUri({
+  scheme: 'datingapp',
+  path: 'auth/facebook/callback'
+})
+
+console.log('FB_REDIRECT_URI:', FB_REDIRECT_URI)
 
 const LoginScreen = () => {
   const { showToast } = useToast();
@@ -30,10 +52,99 @@ const LoginScreen = () => {
   const [passwordError, setPasswordError] = useState("");
   const [generalError, setGeneralError] = useState("");
   const [userId, setUserId] = useState(null);
+  const discovery = {
+    authorizationEndpoint: 'https://www.facebook.com/v18.0/dialog/oauth',
+    tokenEndpoint: 'https://graph.facebook.com/v18.0/oauth/access_token',
+  }
+
+  const [request, response, promptAsync] = AuthSession.useAuthRequest(
+    {
+      clientId: FB_APP_ID,
+      responseType: 'code',
+      redirectUri: FB_REDIRECT_URI,
+      scopes: ['public_profile', 'email'],
+      extraParams: {
+        display: 'popup',
+        auth_type: 'rerequest' // Yêu cầu xác thực lại, hữu ích nếu người dùng đã từ chối trước đó
+      }
+    },
+    discovery
+  )
 
   const togglePasswordVisibility = () => {
     setPasswordVisible(!passwordVisible);
   };
+
+  useEffect(() => {
+    const handleFacebookResponse = async () => {
+      console.log('Facebook response: ', response)
+
+      if (response?.type === 'success') {
+        const { code } = response.params
+        console.log('Received code: ', code)
+        
+        try {
+          setIsLoading(true)
+
+          // Send code to server to exchange for token
+          const response = await fetch(`${appConfig.API_URL}/auth/facebook/callback`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              code, 
+              redirectUri: FB_REDIRECT_URI
+            }),
+          })
+
+          const data = await response.json()
+
+          if (response.ok) {
+            if (data.data && data.data.token) {              await AsyncStorage.setItem('authToken', data.data.token)
+              console.log('Facebook login token saved to AsyncStorage:', data.data.token.substring(0, 15) + '...');
+              showToast('Facebook login successful!', 'success')
+
+              const userId = data.data.user.id
+
+              const checkResponse = await fetch(
+                `${appConfig.API_URL}/user/check-user-info-completion/${userId}`
+              )
+
+              const checkData = await checkResponse.json()
+              
+              // If user's information is not completed, navigate to profile detail
+              if (checkResponse.ok && !checkData.data.isCompleted) {
+                router.replace("/(auth)/profile_detail")
+              } else {
+                router.replace("/(tabs)/discover")
+              }
+            } else {
+              setGeneralError('No token received from the server.')
+            }
+          } else {
+            showToast(data.message || 'Facebook login failed.', 'error')
+            setGeneralError(data.message || 'An error occurred during Facebook login.')
+          }        } catch (error) {
+          console.error('Facebook login error:', error)
+          showToast('Network error. Please check your connection.', 'error')
+          setGeneralError('An error occurred during Facebook login.')
+        } finally {
+          setIsLoading(false)
+        }      } else if (response?.type === 'error') {
+        console.error('Facebook authentication error:', response.error)
+        showToast('Facebook login failed.', 'error')
+        setGeneralError('Facebook authentication failed. Please try again.')
+        setIsLoading(false)
+      } else if (response?.type === 'dismiss' || response?.type === 'cancel') {
+        console.log('Facebook login was dismissed or cancelled by user');
+        showToast('Facebook login was cancelled', 'info');
+        setIsLoading(false);
+      }
+    }
+
+    handleFacebookResponse()
+  }, [response])
 
   useEffect(() => {
     const fetchUserId = async () => {
@@ -162,6 +273,23 @@ const LoginScreen = () => {
       }
     }
   };
+  const handleGoogleLogin = async () => {}
+  const handleFacebookLogin = async () => {
+    try {
+      setIsLoading(true);
+      showToast('Redirecting to Facebook login...', 'info');
+      console.log('Starting Facebook login with redirectUri:', FB_REDIRECT_URI);
+      
+      // Không sử dụng useProxy trong môi trường production
+      const result = await promptAsync();
+      console.log('Auth result: ', result);
+      
+      // Không cần làm gì ở đây vì useEffect sẽ xử lý kết quả
+    } catch (error) {      console.error('Facebook login error:', error);
+      showToast('Facebook login failed: ' + (error.message || 'Unknown error'), 'error');
+      setIsLoading(false);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.container}>
