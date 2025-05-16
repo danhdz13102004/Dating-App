@@ -11,6 +11,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  Modal,
+  Alert,
 } from "react-native";
 import { MaterialIcons, Feather } from "@expo/vector-icons";
 import { Colors } from "../../../constants/Colors";
@@ -25,8 +27,8 @@ import {
   serverTimestamp,
   addDoc,
   limit,
-  getDocs,  // Thêm getDocs
-  where,    // Thêm where
+  getDocs,
+  where,
   writeBatch,
 } from "firebase/firestore";
 import appConfig from "../../../configs/config";
@@ -43,7 +45,10 @@ const DetailChat = () => {
   const { idCoversation, id_partner, name, avatar } = useLocalSearchParams();
 
   const [unreadMessages, setUnreadMessages] = useState([]);
-
+  const [showBlockModal, setShowBlockModal] = useState(false);
+  const [isBlockLoading, setIsBlockLoading] = useState(false);
+  const [conversationData, setConversationData] = useState(null);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   // Lấy messages từ API
   useEffect(() => {
@@ -68,6 +73,51 @@ const DetailChat = () => {
     };
     fetchMessages();
   }, []);
+
+  // Fetch conversation data to check blocked status
+  useEffect(() => {
+    const fetchConversationData = async () => {
+      try {
+        const token = await AsyncStorage.getItem("authToken");
+        const decoded = jwtDecode(token);
+        // setUserId(decoded.userId);
+        console.log("User ID from token:", decoded.userId);
+        console.log("Conversation ID:", idCoversation);
+        const response = await fetch(`${appConfig.API_URL}/conversation/${idCoversation}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json"
+          },
+        });
+
+        const data = await response.json();
+        console.log("Conversation data:", data);
+        if (data.status === "success") {
+          setConversationData(data.data);
+          
+          // Check if conversation is blocked
+          if (data.data.blocked_by) {
+            setIsBlocked(true);
+            
+            // If current user is blocked, show alert and redirect
+            if (data.data.blocked_by !== decoded.userId) {
+              Alert.alert(
+                "Blocked",
+                "You cannot send messages because you have been blocked by this user",
+                [{ text: "OK", onPress: () => router.push("/(tabs)/chat") }]
+              );
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching conversation data:", error);
+      }
+    };
+
+    if (idCoversation) {
+      fetchConversationData();
+    }
+  }, [idCoversation]);
 
   // Lắng nghe Firestore thay đổi (nếu có)
   useEffect(() => {
@@ -259,6 +309,17 @@ const DetailChat = () => {
   };
 
   const sendMessage = async ({ senderId = "abc" }) => {
+    // Check if conversation is blocked
+    if (isBlocked) {
+      Alert.alert(
+        "Blocked Conversation", 
+        conversationData?.blocked_by === userId ? 
+          `You have blocked ${name}. Unblock to send messages.` : 
+          `You have been blocked by ${name}.`
+      );
+      return;
+    }
+    
     try {
       const receiverId = id_partner; // ID của người dùng khác
       console.log("CHECK SEND MESS :", senderId, receiverId)
@@ -312,6 +373,118 @@ const DetailChat = () => {
     Keyboard.dismiss();
   };
 
+  // Block user function
+  const handleBlockUser = async () => {
+    try {
+      setIsBlockLoading(true);
+
+      const url = `${appConfig.API_URL}/conversation/${idCoversation}/block`;
+      console.log("URL: ", url);
+      const response = await fetch(url, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          blocked_by: userId,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.status === "success") {
+        setIsBlocked(true);
+        Alert.alert(
+          "User Blocked",
+          `You have blocked ${name}. You will no longer receive messages from this user.`,
+          [{ text: "OK", onPress: () => router.push("/(tabs)/chat") }]
+        );
+      } else {
+        Alert.alert("Error", data.message || "Failed to block user");
+      }
+    } catch (error) {
+      console.error("Error blocking user:", error);
+      Alert.alert("Error", "An error occurred while trying to block the user");
+    } finally {
+      setIsBlockLoading(false);
+      setShowBlockModal(false);
+    }
+  };
+
+  // Confirm block action
+  const confirmBlock = () => {
+    Alert.alert(
+      "Block User",
+      `Are you sure you want to block ${name}? You will no longer receive messages from this user.`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+          onPress: () => setShowBlockModal(false),
+        },
+        {
+          text: "Block",
+          style: "destructive",
+          onPress: handleBlockUser,
+        },
+      ]
+    );
+  };
+  
+  // Unblock user function
+  const handleUnblockUser = async () => {
+    try {
+      setIsBlockLoading(true);
+
+      const url = `${appConfig.API_URL}/conversation/${idCoversation}/unblock`;
+      console.log("URL: ", url);
+      const response = await fetch(url, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+
+      const data = await response.json();
+      
+      if (data.status === "success") {
+        setIsBlocked(false);
+        Alert.alert(
+          "User Unblocked",
+          `You have unblocked ${name}. You can now send and receive messages from this user.`,
+          [{ text: "OK" }]
+        );
+      } else {
+        Alert.alert("Error", data.message || "Failed to unblock user");
+      }
+    } catch (error) {
+      console.error("Error unblocking user:", error);
+      Alert.alert("Error", "An error occurred while trying to unblock the user");
+    } finally {
+      setIsBlockLoading(false);
+      setShowBlockModal(false);
+    }
+  };
+  
+  // Confirm unblock action
+  const confirmUnblock = () => {
+    Alert.alert(
+      "Unblock User",
+      `Are you sure you want to unblock ${name}? You will start receiving messages from this user again.`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+          onPress: () => setShowBlockModal(false),
+        },
+        {
+          text: "Unblock",
+          onPress: handleUnblockUser,
+        },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -338,9 +511,13 @@ const DetailChat = () => {
                 <Text style={styles.statusText}>Online</Text>
               </View>
             </View>
+
           </View>
 
-          <TouchableOpacity style={styles.moreButton}>
+          <TouchableOpacity 
+            style={styles.moreButton}
+            onPress={() => setShowBlockModal(true)}
+          >
             <MaterialIcons
               name="more-vert"
               size={24}
@@ -356,6 +533,53 @@ const DetailChat = () => {
         behavior={Platform.OS === "ios" ? "padding" : "padding"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
+        {/* Block User Modal */}
+        <Modal
+          transparent={true}
+          visible={showBlockModal}
+          animationType="fade"
+          onRequestClose={() => setShowBlockModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowBlockModal(false)}
+          >
+            <View style={styles.modalContent}>
+              {isBlocked ? (
+                <TouchableOpacity 
+                  style={styles.modalOption}
+                  onPress={confirmUnblock}
+                  disabled={isBlockLoading}
+                >
+                  <MaterialIcons name="lock-open" size={24} color={Colors.primaryColor} />
+                  <Text style={styles.unblockText}>
+                    {isBlockLoading ? "Unblocking..." : "Unblock User"}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity 
+                  style={styles.modalOption}
+                  onPress={confirmBlock}
+                  disabled={isBlockLoading}
+                >
+                  <MaterialIcons name="block" size={24} color="#FF3B30" />
+                  <Text style={styles.blockText}>
+                    {isBlockLoading ? "Blocking..." : "Block User"}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              
+              <TouchableOpacity 
+                style={[styles.modalOption, styles.cancelOption]} 
+                onPress={() => setShowBlockModal(false)}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
         <TouchableOpacity
           activeOpacity={1}
           style={{ flex: 1 }}
@@ -429,22 +653,38 @@ const DetailChat = () => {
         {/* Nhập message */}
         <View style={styles.footer}>
           <View style={styles.footerContent}>
-            <View style={styles.inputContainer}>
+            <View style={[
+              styles.inputContainer,
+              isBlocked && styles.disabledInput
+            ]}>
               <TextInput
                 style={styles.input}
-                placeholder="Your message"
-                placeholderTextColor="#999"
+                placeholder={isBlocked ? "Blocked conversation" : "Your message"}
+                placeholderTextColor={isBlocked ? "#FF3B30" : "#999"}
                 value={content}
                 onChangeText={(text) => setContent(text)}
+                editable={!isBlocked}
               />
             </View>
             <TouchableOpacity
               onPress={() => sendMessage({ senderId: userId })}
-              style={styles.buttonSend}
+              style={[styles.buttonSend, isBlocked && styles.disabledButton]}
+              disabled={isBlocked}
             >
-              <Feather name="send" size={24} color={Colors.primaryColor} />
+              <Feather 
+                name="send" 
+                size={24} 
+                color={isBlocked ? "#CCCCCC" : Colors.primaryColor} 
+              />
             </TouchableOpacity>
           </View>
+          {isBlocked && (
+            <Text style={styles.blockedText}>
+              {conversationData?.blocked_by === userId ? 
+                `You have blocked ${name}` : 
+                `You have been blocked by ${name}`}
+            </Text>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -560,6 +800,63 @@ const styles = StyleSheet.create({
     borderColor: "#E0E0E0",
     alignItems: "center",
     justifyContent: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 30,
+  },
+  modalOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  blockText: {
+    marginLeft: 15,
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#FF3B30",
+  },
+  unblockText: {
+    marginLeft: 15,
+    fontSize: 16,
+    fontWeight: "500",
+    color: Colors.primaryColor,
+  },
+  cancelOption: {
+    justifyContent: "center",
+    marginTop: 10,
+    borderBottomWidth: 0,
+  },
+  cancelText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: Colors.primaryColor,
+    textAlign: "center",
+  },
+  disabledInput: {
+    backgroundColor: "#F8F8F8",
+    borderColor: "#DDDDDD",
+  },
+  disabledButton: {
+    borderColor: "#DDDDDD",
+    backgroundColor: "#F8F8F8",
+  },
+  blockedText: {
+    color: "#FF3B30",
+    fontSize: 12,
+    textAlign: "center",
+    marginTop: 5,
+    fontStyle: "italic",
   },
 });
 
