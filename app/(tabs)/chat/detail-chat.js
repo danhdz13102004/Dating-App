@@ -13,6 +13,7 @@ import {
   Keyboard,
   Modal,
   Alert,
+  Pressable,
 } from "react-native";
 import { MaterialIcons, Feather } from "@expo/vector-icons";
 import { Colors } from "../../../constants/Colors";
@@ -29,7 +30,7 @@ import {
   limit,
   getDocs,
   where,
-  writeBatch,
+  writeBatch
 } from "firebase/firestore";
 import appConfig from "../../../configs/config";
 import { useRouter, useGlobalSearchParams, useLocalSearchParams } from 'expo-router'
@@ -50,6 +51,12 @@ const DetailChat = () => {
   const [conversationData, setConversationData] = useState(null);
   const [isBlocked, setIsBlocked] = useState(false);
 
+  // States for message actions
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [showMessageActionModal, setShowMessageActionModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editContent, setEditContent] = useState("");
+
   // Lấy messages từ API
   useEffect(() => {
     console.log(idCoversation, id_partner);
@@ -67,6 +74,7 @@ const DetailChat = () => {
         const data = await response.json();
         // console.log("📥 Messages fetched from API:", data);
         setMessages(data.data || []);
+        AsyncStorage.setItem("lastMessageSentId", data.data[data.data.length-1]._id)
       } catch (error) {
         console.error("❌ Error fetching messages:", error);
       }
@@ -94,11 +102,11 @@ const DetailChat = () => {
         console.log("Conversation data:", data);
         if (data.status === "success") {
           setConversationData(data.data);
-          
+
           // Check if conversation is blocked
           if (data.data.blocked_by) {
             setIsBlocked(true);
-            
+
             // If current user is blocked, show alert and redirect
             if (data.data.blocked_by !== decoded.userId) {
               Alert.alert(
@@ -141,37 +149,75 @@ const DetailChat = () => {
           unsubscribe = onSnapshot(q, async (querySnapshot) => { // Thêm async
             const newUnreadMessages = []; // Tạo mảng để theo dõi tin nhắn chưa đọc mới
 
-            querySnapshot.forEach((doc) => {
+            querySnapshot.forEach(async (doc) => {
               // console.log("🔥 New message from detail:", doc.data());
 
               const firestoreData = doc.data();
-              // console.log("🔥 Firestore data:", firestoreData);
-              // console.log(firestoreData.sender, id_partner);
-              if (firestoreData.sender != id_partner) return;
+              console.log("🔥 Firestore data:", firestoreData);
+              console.log(firestoreData.sender, id_partner);
+              if (firestoreData.sender._id !== id_partner) return;
 
-              // 🔁 Chuyển đổi dữ liệu sang định dạng giống API
-              const newMsg = {
-                _id: doc.id,
-                content: firestoreData.content || "",
-                conversation: firestoreData.conversation || "", // nếu có
-                createdAt: firestoreData.createdAt?.toDate().toISOString() || new Date().toISOString(),
-                updatedAt: firestoreData.updatedAt?.toDate().toISOString() || firestoreData.createdAt?.toDate().toISOString() || new Date().toISOString(),
-                status: firestoreData.status || "sent",
-                sender: {
-                  _id: firestoreData.sender
-                }, // nếu lưu trong Firestore
-                __v: 0
-              };
-
-              setMessages(prev => {
-                return [...prev, newMsg];
-              });
-
-
-              // Nếu tin nhắn chưa đọc, thêm vào mảng chưa đọc
-              if (!newMsg.isRead && newMsg.sender._id !== uid) {
-                newUnreadMessages.push(doc.id);
+              if (firestoreData.isDeleted) {
+                const deletedMess = {
+                  _id: firestoreData._id,
+                };
+                // Update in UI immediately 
+                setMessages(prev =>
+                 
+                  prev.map(msg =>
+                    msg._id === deletedMess._id
+                      ? { ...msg, isDeleted:true }
+                      : msg
+                  )
+                  
+                );
               }
+              else if (firestoreData.isEdited) {
+                console.log('in EDIT')
+                const editMsg = {
+                  _id: firestoreData._id,
+                  editContent: firestoreData.content || "",
+                  updatedAt: firestoreData.createdAt?.toDate().toISOString() || firestoreData.createdAt?.toDate().toISOString() || new Date().toISOString(),
+                };
+                // Update in UI immediately 
+                setMessages(prev =>
+                  
+                  prev.map(msg =>
+                    msg._id === editMsg._id
+                      ? { ...msg, content: editMsg.editContent, updatedAt: editMsg.updatedAt, isEdited: true }
+                      : msg
+                  )
+                );
+              }
+              else {
+                // 🔁 Chuyển đổi dữ liệu sang định dạng giống API
+                const newMsg = {
+                  _id: firestoreData._id,
+                  content: firestoreData.content || "",
+                  conversation: firestoreData.conversation || "", // nếu có
+                  createdAt: firestoreData.createdAt?.toDate().toISOString() || new Date().toISOString(),
+                  updatedAt: firestoreData.updatedAt?.toDate().toISOString() || firestoreData.createdAt?.toDate().toISOString() || new Date().toISOString(),
+                  status: firestoreData.status || "sent",
+                  isDeleted: firestoreData.isDeleted || false,
+                  isEdited: firestoreData.isEdited || false,
+                  sender: {
+                    _id: firestoreData.sender._id
+                  }, // nếu lưu trong Firestore
+                  __v: 0
+                };
+
+                setMessages(prev => {
+                  return [...prev, newMsg];
+                });
+
+                // Nếu tin nhắn chưa đọc, thêm vào mảng chưa đọc
+                if (!newMsg.isRead && newMsg.sender._id !== uid) {
+                  newUnreadMessages.push(doc.id);
+                }
+              }
+
+
+              
             });
 
             // Nếu có tin nhắn mới chưa đọc, đánh dấu đã đọc
@@ -298,11 +344,12 @@ const DetailChat = () => {
         },
         body: JSON.stringify(newMessage),
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Message added successfully:", data);
-      }
+      
+      //check data response
+      const data = await response.json();
+      console.log("Message added successfully:", data);
+      
+      return data._id
     } else {
       alert("Sent error");
     }
@@ -312,14 +359,14 @@ const DetailChat = () => {
     // Check if conversation is blocked
     if (isBlocked) {
       Alert.alert(
-        "Blocked Conversation", 
-        conversationData?.blocked_by === userId ? 
-          `You have blocked ${name}. Unblock to send messages.` : 
+        "Blocked Conversation",
+        conversationData?.blocked_by === userId ?
+          `You have blocked ${name}. Unblock to send messages.` :
           `You have been blocked by ${name}.`
       );
       return;
     }
-    
+
     try {
       const receiverId = id_partner; // ID của người dùng khác
       console.log("CHECK SEND MESS :", senderId, receiverId)
@@ -334,6 +381,8 @@ const DetailChat = () => {
         conversation: idCoversation, // nếu có
         status: "sent",
         createdAt: new Date().toISOString(),
+        isEdited: false,
+        isDeleted: false,
         sender: {
           _id: senderId
         }
@@ -345,11 +394,17 @@ const DetailChat = () => {
       setContent("");
       let time = new Date().toISOString()
       const newMessage = {
+        _id:"",
         conversation: idCoversation,
-        sender: senderId,
+        sender: {
+          _id: senderId
+        },
         content: content,
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
+        isEdited: false,
+        isDeleted: false,
+
       };
 
       const newMessageForDB = {
@@ -359,9 +414,14 @@ const DetailChat = () => {
         createdAt: time,
         updatedAt: time
       };
+      const newMsgId = await addToDB(newMessageForDB);
+
+      newMsg._id = newMsgId;
+      newMessage._id = newMsgId
+      AsyncStorage.setItem("lastMessageSentId",newMsgId)
+
       await addDoc(messagesSubcollectionRef, newMessage);
 
-      await addToDB(newMessageForDB)
 
       console.log("✅ Tin nhắn đã được gửi!");
     } catch (error) {
@@ -391,7 +451,7 @@ const DetailChat = () => {
       });
 
       const data = await response.json();
-      
+
       if (data.status === "success") {
         setIsBlocked(true);
         Alert.alert(
@@ -430,7 +490,7 @@ const DetailChat = () => {
       ]
     );
   };
-  
+
   // Unblock user function
   const handleUnblockUser = async () => {
     try {
@@ -446,7 +506,7 @@ const DetailChat = () => {
       });
 
       const data = await response.json();
-      
+
       if (data.status === "success") {
         setIsBlocked(false);
         Alert.alert(
@@ -465,7 +525,7 @@ const DetailChat = () => {
       setShowBlockModal(false);
     }
   };
-  
+
   // Confirm unblock action
   const confirmUnblock = () => {
     Alert.alert(
@@ -483,6 +543,180 @@ const DetailChat = () => {
         },
       ]
     );
+  };
+
+  // Message actions
+  const handleLongPressMessage = (msg) => {
+    // Only allow action on sent messages (user's own messages)
+    if (msg.sender._id === userId && !msg.isDeleted ) {
+      setSelectedMessage(msg);
+      setShowMessageActionModal(true);
+    }
+    else{
+      if (msg.isDeleted){
+        Alert.alert("Message was recalled")
+      }
+    }
+  };
+
+  // Edit message function
+  const handleEditMessage = () => {
+    setIsEditMode(true);
+    setEditContent(selectedMessage.content);
+    setShowMessageActionModal(false);
+  };
+  // Save edited message
+  const saveEditedMessage = async () => {
+    if (!selectedMessage || !editContent.trim()) return;
+
+    try {
+      console.log("Saving edited message:", selectedMessage._id);
+
+      // Update message in Firestore (partner's collection)
+      const messageRef = collection(db, `messages/${id_partner}/messages`);
+      const editMsg = {
+        _id: selectedMessage._id,
+        content: editContent,
+        conversation: idCoversation, // nếu có
+        isEdited: true,
+        isDeleted: selectedMessage.isDeleted,
+        createdAt: serverTimestamp(),
+        sender: {
+          _id: userId
+        }
+      };
+      // Update in Firebase with new content and timestamp
+      await addDoc(messageRef, editMsg);
+      console.log("Message updated in partner's collection");
+
+      // Update in backend
+      const url = `${appConfig.API_URL}/message/edit`;
+      const storedMessageId = await AsyncStorage.getItem("lastMessageSentId");
+      const response = await fetch(url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messageId: selectedMessage._id,
+          content: editContent,
+          updatedAt: new Date().toISOString(),
+          isLastMessage: selectedMessage._id === storedMessageId,
+        }),
+      });
+
+      const data = await response.json();
+      console.log("Backend update response:", data);
+
+      // Update in UI immediately 
+      setMessages(prev =>
+        prev.map(msg =>
+          msg._id === selectedMessage._id
+            ? { ...msg, content: editContent, updatedAt: new Date().toISOString(), isEdited: true }
+            : msg
+        )
+      );
+
+      console.log("✅ Message edited successfully");
+
+      // Exit edit mode
+      setIsEditMode(false);
+      setEditContent("");
+      setSelectedMessage(null);
+    } catch (error) {
+      console.error("❌ Error editing message:", error);
+      Alert.alert("Error", "Failed to edit message. Please try again.");
+      setIsEditMode(false);
+    }
+  };
+
+  // Cancel edit mode
+  const cancelEdit = () => {
+    setIsEditMode(false);
+    setEditContent("");
+    setSelectedMessage(null);
+  };
+
+
+  // Recall message function
+  const handleRecallMessage = async () => {
+    try {
+      if (!selectedMessage) return;
+
+      // Close modal first
+      setShowMessageActionModal(false);
+
+      // Show confirmation dialog
+      Alert.alert(
+        "Recall Message",
+        "Are you sure you want to recall this message? This cannot be undone.",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Recall",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                console.log("Recalling message with ID:", selectedMessage._id);
+
+                // Delete from Firestore (receiver's collection)
+                const messageRef = collection(db, `messages/${id_partner}/messages`);
+                const deletedMsg = {
+                  _id: selectedMessage._id,
+                  conversation: idCoversation,
+                  isDeleted: true,
+                  isEdited: selectedMessage.isEdited,
+                  createdAt: serverTimestamp(),
+                  sender: {
+                    _id: userId
+                  }
+                };
+                await addDoc(messageRef, deletedMsg);
+                console.log("Message deleted from partner's collection");
+
+
+                // Delete from backend
+                const url = `${appConfig.API_URL}/message/delete`;
+                const storedMessageId = await AsyncStorage.getItem("lastMessageSentId");
+                const response = await fetch(url, {
+                  method: "DELETE",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    messageId: selectedMessage._id,
+                    isLastMessage: selectedMessage._id === storedMessageId,
+                  }),
+                });
+
+                const data = await response.json();
+                console.log("Backend deletion response:", data);
+
+                // Message will be removed from UI 
+                setMessages(prev =>
+                  prev.map(msg =>
+                    msg._id === selectedMessage._id
+                      ? { ...msg, isDeleted:true }
+                      : msg
+                  )
+                );
+
+                console.log("✅ Message recalled successfully");
+              } catch (error) {
+                console.error("❌ Error recalling message:", error);
+                Alert.alert("Error", "Failed to recall message. Please try again.");
+              }
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error("❌ Error in recall message function:", error);
+      Alert.alert("Error", "An unexpected error occurred");
+    }
   };
 
   return (
@@ -514,7 +748,7 @@ const DetailChat = () => {
 
           </View>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.moreButton}
             onPress={() => setShowBlockModal(true)}
           >
@@ -547,7 +781,7 @@ const DetailChat = () => {
           >
             <View style={styles.modalContent}>
               {isBlocked ? (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.modalOption}
                   onPress={confirmUnblock}
                   disabled={isBlockLoading}
@@ -558,7 +792,7 @@ const DetailChat = () => {
                   </Text>
                 </TouchableOpacity>
               ) : (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.modalOption}
                   onPress={confirmBlock}
                   disabled={isBlockLoading}
@@ -569,9 +803,9 @@ const DetailChat = () => {
                   </Text>
                 </TouchableOpacity>
               )}
-              
-              <TouchableOpacity 
-                style={[styles.modalOption, styles.cancelOption]} 
+
+              <TouchableOpacity
+                style={[styles.modalOption, styles.cancelOption]}
                 onPress={() => setShowBlockModal(false)}
               >
                 <Text style={styles.cancelText}>Cancel</Text>
@@ -579,6 +813,87 @@ const DetailChat = () => {
             </View>
           </TouchableOpacity>
         </Modal>
+
+        {/* Message Action Modal */}
+        <Modal
+          transparent={true}
+          visible={showMessageActionModal}
+          animationType="slide"
+          onRequestClose={() => setShowMessageActionModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowMessageActionModal(false)}
+          >
+            <View style={styles.messageActionModalContent}>
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={handleEditMessage}
+              >
+                <MaterialIcons name="edit" size={24} color={Colors.primaryColor} />
+                <Text style={styles.editText}>Edit Message</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={handleRecallMessage}
+              >
+                <MaterialIcons name="replay" size={24} color="#FF3B30" />
+                <Text style={styles.recallText}>Recall Message</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalOption, styles.cancelOption]}
+                onPress={() => setShowMessageActionModal(false)}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Edit Mode UI */}
+        {isEditMode && (
+          <View style={styles.editModeContainer}>
+            <View style={styles.editHeader}>
+              <Text style={styles.editTitle}>Edit Message</Text>
+              <TouchableOpacity onPress={cancelEdit}>
+                <MaterialIcons name="close" size={24} color="#999" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.editInputContainer}>
+              <TextInput
+                style={styles.editInput}
+                value={editContent}
+                onChangeText={setEditContent}
+                multiline
+                autoFocus
+              />
+            </View>
+            <View style={styles.editActions}>
+              <TouchableOpacity
+                style={styles.editCancelButton}
+                onPress={cancelEdit}
+              >
+                <Text style={styles.editCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.editSaveButton,
+                  !editContent.trim() && styles.editSaveButtonDisabled
+                ]}
+                onPress={saveEditedMessage}
+                disabled={!editContent.trim()}
+              >
+                <Text style={[
+                  styles.editSaveText,
+                  !editContent.trim() && styles.editSaveTextDisabled
+                ]}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         <TouchableOpacity
           activeOpacity={1}
@@ -618,15 +933,19 @@ const DetailChat = () => {
                   scrollViewRef.current?.scrollToEnd({ animated: true });
                 }
                   , 200);
-              }
-
-              return (
+              } return (
                 <View key={msg.id || index}>
                   {isSent ? (
                     <>
-                      <View style={styles.sentMessageContainer}>
-                        <Text style={styles.messageText}>{msg.content}</Text>
-                      </View>
+                      <Pressable
+                        onLongPress={() => handleLongPressMessage(msg)}
+                        delayLongPress={500}
+                      >
+                        <View style={styles.sentMessageContainer}>
+                          <Text style={!msg.isDeleted?styles.messageText:styles.recalledText}>{!msg.isDeleted?msg.content:"Message was recalled"}</Text>
+                          {msg.isEdited&&<Text style={styles.editedText}>edited</Text>}
+                        </View>
+                      </Pressable>
                       <View style={styles.timeContainerRight}>
                         <Text style={styles.timeTextRight}>{time}</Text>
                         <MaterialIcons
@@ -639,7 +958,8 @@ const DetailChat = () => {
                   ) : (
                     <>
                       <View style={styles.receivedMessageContainer}>
-                        <Text style={styles.messageText}>{msg.content}</Text>
+                        <Text style={!msg.isDeleted?styles.messageText:styles.recalledText}>{!msg.isDeleted?msg.content:"Message was recalled"}</Text>
+                        {msg.isEdited&&<Text style={styles.editedText}>edited</Text>}
                       </View>
                       <Text style={styles.timeTextLeft}>{time}</Text>
                     </>
@@ -671,17 +991,17 @@ const DetailChat = () => {
               style={[styles.buttonSend, isBlocked && styles.disabledButton]}
               disabled={isBlocked}
             >
-              <Feather 
-                name="send" 
-                size={24} 
-                color={isBlocked ? "#CCCCCC" : Colors.primaryColor} 
+              <Feather
+                name="send"
+                size={24}
+                color={isBlocked ? "#CCCCCC" : Colors.primaryColor}
               />
             </TouchableOpacity>
           </View>
           {isBlocked && (
             <Text style={styles.blockedText}>
-              {conversationData?.blocked_by === userId ? 
-                `You have blocked ${name}` : 
+              {conversationData?.blocked_by === userId ?
+                `You have blocked ${name}` :
                 `You have been blocked by ${name}`}
             </Text>
           )}
@@ -813,12 +1133,29 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 30,
   },
+  messageActionModalContent: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 20,
+    paddingBottom: 30,
+    alignItems: "center",
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
   modalOption: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: "#F0F0F0",
+    width: "100%",
   },
   blockText: {
     marginLeft: 15,
@@ -831,6 +1168,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     color: Colors.primaryColor,
+  },
+  editText: {
+    marginLeft: 15,
+    fontSize: 16,
+    fontWeight: "500",
+    color: Colors.primaryColor,
+  },
+  deleteText: {
+    marginLeft: 15,
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#FF3B30",
+  },
+  recallText: {
+    marginLeft: 15,
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#FF3B30",
+  },
+  recalledText: {
+    fontSize: 16,
+    color: "#888",
+    fontStyle: "italic",
+    alignSelf: "flex-end",
+    marginTop: 2,
+  },
+  editedText: {
+    fontSize: 11,
+    color: "#888",
+    fontStyle: "italic",
+    alignSelf: "flex-end",
+    marginTop: 2,
   },
   cancelOption: {
     justifyContent: "center",
@@ -857,6 +1226,72 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 5,
     fontStyle: "italic",
+  },
+  editModeContainer: {
+    padding: 15,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#E0E0E0",
+    elevation: 5,
+  },
+  editHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  editTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+  },
+  editInputContainer: {
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+  },
+  editInput: {
+    fontSize: 16,
+    color: "#000",
+    minHeight: 40,
+    maxHeight: 100,
+  },
+  editActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  editCancelButton: {
+    flex: 1,
+    backgroundColor: "#F0F0F0",
+    borderRadius: 10,
+    paddingVertical: 10,
+    marginRight: 10,
+    alignItems: "center",
+  },
+  editCancelText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#666",
+  },
+  editSaveButton: {
+    flex: 1,
+    backgroundColor: Colors.primaryColor,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  editSaveButtonDisabled: {
+    backgroundColor: "#DDDDDD",
+  },
+  editSaveText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#fff",
+  },
+  editSaveTextDisabled: {
+    color: "#999",
   },
 });
 
