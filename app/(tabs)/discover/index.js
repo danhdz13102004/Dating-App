@@ -17,6 +17,7 @@ import {
   Animated,
   PanResponder,
   Easing,
+  Switch
 } from "react-native";
 import Swiper from "react-native-deck-swiper";
 import { FontAwesome } from "@expo/vector-icons";
@@ -45,16 +46,18 @@ const MatchScreen = () => {
   const [showFilters, setShowFilters] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const [loading, setLoading] = useState(true)
-  
+
   const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  
+
   // Filter state
   const [genderFilter, setGenderFilter] = useState('Girls')
   const [distanceFilter, setDistanceFilter] = useState(40)
   const [ageRange, setAgeRange] = useState([20, 28])
   const [userPreferences, setUserPreferences] = useState(null)
-  
+  // Thêm state này cùng với các state filter khác
+  const [showSkippedUsers, setShowSkippedUsers] = useState(false);
+
   const MIN_AGE = 18
   const MAX_AGE = 100
   const MAX_DISTANCE = 500 // Maximum distance in km
@@ -254,14 +257,14 @@ const MatchScreen = () => {
 
   // Debounced fetch potential matches to avoid spamming the API
   const debouncedFetchPotentialMatches = useCallback(
-    debounce((userId, page, append) => {
-      fetchPotentialMatches(userId, page, append);
+    debounce((userId, page, append, forceShowSkipped = null) => {
+      fetchPotentialMatches(userId, page, append, forceShowSkipped);
     }, 500),
     []
   );
 
   // Function to fetch potential matches - Call API /match/:id/potential-matches
-  const fetchPotentialMatches = async (userId, page = 1, append = false) => {
+  const fetchPotentialMatches = async (userId, page = 1, append = false, forceShowSkipped = null) => {
     try {
       if (page === 1) {
         setLoading(true);
@@ -269,7 +272,13 @@ const MatchScreen = () => {
         setIsFetchingMore(true);
       }
 
-      const URL = `${API_URL}/match/${userId}/potential-matches?page=${page}&limit=${pagination.limit}`;
+      // Sử dụng giá trị được truyền vào nếu có, nếu không thì dùng state
+      const useShowSkipped = forceShowSkipped !== null ? forceShowSkipped : showSkippedUsers;
+
+      // Thêm tham số showSkipped vào URL
+      const URL = `${API_URL}/match/${userId}/potential-matches?page=${page}&limit=${pagination.limit}&showSkipped=${useShowSkipped}`;
+      console.log("Fetching potential matches URL:", URL);
+
       const response = await fetch(URL, {
         method: "GET",
         headers: {
@@ -296,13 +305,13 @@ const MatchScreen = () => {
         // Update pagination state
         setPagination(paginationMetadata);
 
-          // Notify if no potential matches found on first page
-          if (data.data.length === 0 && page === 1) {
-            setPotentialMatches([])
-            setCurrentUser(null)
-            console.log(("No matches found", "Try adjusting your filters or come back later."))
-            return
-          }
+        // Notify if no potential matches found on first page
+        if (data.data.length === 0 && page === 1) {
+          setPotentialMatches([])
+          setCurrentUser(null)
+          console.log(("No matches found", "Try adjusting your filters or come back later."))
+          return
+        }
 
         const formattedUsers = data.data.map((user, index) => {
           // Preload images for the first 5 users
@@ -416,6 +425,12 @@ const MatchScreen = () => {
   const updatePreferences = async () => {
     if (!userId) return;
 
+
+    console.log("Updating preferences...");
+
+
+
+    console.log("gia tri cua showskip " + showSkippedUsers);
     try {
       setLoading(true);
 
@@ -424,6 +439,7 @@ const MatchScreen = () => {
         maxDistance: distanceFilter,
         minAge: ageRange[0],
         maxAge: ageRange[1],
+        showSkippedUsers: showSkippedUsers
       };
 
       const URL = `${API_URL}/match/${userId}/preferences`;
@@ -442,20 +458,28 @@ const MatchScreen = () => {
 
       const data = await response.json()
       console.log('Update preferences response: ', data)
-        
+
       if (data && data.status === 'success') {
         setUserPreferences({
           gender: genderFilter,
           maxDistance: distanceFilter,
           ageRange,
-        })
-        setPagination({ 
-          page: 1, 
-          limit: 20, 
-          total: 0, 
-          hasNextPage: false })
-        debouncedFetchPotentialMatches(userId, 1, false)  // Fetch new matches
-        toggleFiltersModal()
+          // Thêm showSkippedUsers vào userPreferences
+          showSkippedUsers
+        });
+
+        setPagination({
+          page: 1,
+          limit: 20,
+          total: 0,
+          hasNextPage: false
+        });
+
+        // Thay vì gọi debouncedFetchPotentialMatches, hãy truyền trực tiếp giá trị showSkippedUsers
+        // vào hàm fetch
+        fetchPotentialMatches(userId, 1, false, showSkippedUsers);
+
+        toggleFiltersModal();
       } else {
         console.log('Failed to update preferences')
       }
@@ -496,7 +520,7 @@ const MatchScreen = () => {
     if (!userId) return;
 
     try {
-      
+
       // GỌI API GỬI FIREBASE ĐỂ THÔNG BÁO
       const response = await fetch(`${API_URL}/match/${userId}/request-match-notify`, {
         method: "POST",
@@ -989,7 +1013,7 @@ const MatchScreen = () => {
                           style={[
                             styles.genderButtonText,
                             genderFilter === "Girls" &&
-                              styles.genderButtonTextActive,
+                            styles.genderButtonTextActive,
                           ]}
                         >
                           Girls
@@ -1007,7 +1031,7 @@ const MatchScreen = () => {
                           style={[
                             styles.genderButtonText,
                             genderFilter === "Boys" &&
-                              styles.genderButtonTextActive,
+                            styles.genderButtonTextActive,
                           ]}
                         >
                           Boys
@@ -1025,7 +1049,7 @@ const MatchScreen = () => {
                           style={[
                             styles.genderButtonText,
                             genderFilter === "Any" &&
-                              styles.genderButtonTextActive,
+                            styles.genderButtonTextActive,
                           ]}
                         >
                           Any
@@ -1096,6 +1120,28 @@ const MatchScreen = () => {
                       />
                     </View>
                   </View>
+                  {/* Thêm mục này vào modal filter, đặt trước nút Continue */}
+                  <View style={styles.filterSection}>
+                    <View style={styles.showSkippedContainer}>
+                      <Text style={styles.filterSectionTitle}>Show skipped profiles</Text>
+                      <Switch
+                        trackColor={{ false: "#e0e0e0", true: "#ffe5e9" }}
+                        thumbColor={showSkippedUsers ? Colors.primaryColor : "#f4f3f4"}
+                        ios_backgroundColor="#e0e0e0"
+                        onValueChange={(value) => {
+                          setShowSkippedUsers(value);
+                          console.log("Changing showSkippedUsers to:", value);
+                        }}
+                        value={showSkippedUsers}
+                      />
+                    </View>
+                    <Text style={styles.skippedDescription}>
+                      Turn this on to see profiles you've previously skipped
+                    </Text>
+                  </View>
+
+
+
 
                   {/* Continue Button */}
                   <TouchableOpacity
@@ -1363,7 +1409,8 @@ const styles = StyleSheet.create({
   },
 
   galleryItem: {
-    width: "31%", // Giảm width một chút để đảm bảo 3 ảnh trên một hàng với margin
+    width: "31%" // Giảm width một chút để đảm bảo 3 ảnh trên một hàng với margin
+    ,
     aspectRatio: 1,
     marginBottom: 10,
     borderRadius: 8,
