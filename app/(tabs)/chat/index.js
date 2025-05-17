@@ -341,14 +341,24 @@ const MessagesScreen = () => {
                                         _id: firestoreData.senderId || "unknown-sender"
                                     },
                                     isRead: firestoreData.isRead || false,
+                                    isEdited: firestoreData.isEdited,
+                                    isDeleted: firestoreData.isDeleted,
                                     __v: 0
                                 };
-
+                                //update UI for recall message conversation
+                                if (newMsg.isDeleted){
+                                    setMessages(prev=>
+                                        prev.map(mess => 
+                                            mess.id === newMsg.conversation ? {...mess, message:"Message was recalled" }: mess
+                                        )
+                                    )
+                                }
                                 // Kiểm tra xem tin nhắn đến hay đi
                                 const isIncoming = newMsg.sender._id !== uid;
 
                                 // Chỉ đếm là chưa đọc nếu là tin nhắn đến và chưa đọc
-                                const shouldCountAsUnread = isIncoming && !newMsg.isRead;
+                                const isEditOrRecall = newMsg.isDeleted || newMsg.isEdited
+                                const shouldCountAsUnread = isIncoming && !newMsg.isRead && !isEditOrRecall;
 
                                 // Cập nhật thông tin cho cuộc trò chuyện này
                                 if (!conversationUpdates[conversationId]) {
@@ -362,7 +372,6 @@ const MessagesScreen = () => {
                                     const currentLatest = conversationUpdates[conversationId].latestMessage;
                                     const currentTime = new Date(currentLatest.updatedAt);
                                     const newTime = new Date(newMsg.updatedAt);
-
                                     if (newTime > currentTime) {
                                         conversationUpdates[conversationId].latestMessage = newMsg;
                                     }
