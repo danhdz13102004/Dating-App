@@ -7,7 +7,7 @@ import { Colors } from '../../constants/Colors';
 const { width, height } = Dimensions.get('window');
 const FRAME_SIZE = width * 0.65;
 
-export const QROverlay = () => {
+const QROverlay = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -122,6 +122,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden',  },
 });
+
+// Export component as default
+export default QROverlay;

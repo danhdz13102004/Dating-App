@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react"
 import {
   View,
   Text,
@@ -9,198 +9,98 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-} from "react-native";
-import Icon from "react-native-vector-icons/Feather";
-import { Colors } from "../../constants/Colors";
-import { Image } from "react-native";
-import { router } from "expo-router";
-import appConfig from "../../configs/config";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useToast } from "../../context/ToastContext";
-import * as AuthSession from "expo-auth-session";
-import * as WebBrowser from "expo-web-browser";
+  Image,
+  ActivityIndicator,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Alert,
+} from "react-native"
+import Icon from "react-native-vector-icons/Feather"
+import { Colors } from "../../constants/Colors"
+import { router } from "expo-router"
+import appConfig from "../../configs/config"
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import { useToast } from "../../context/ToastContext"
+import FacebookLoginButton from "../components/FacebookLoginButton"
+import { GoogleSignin } from "@react-native-google-signin/google-signin"
 
-WebBrowser.maybeCompleteAuthSession()
-
-const FB_APP_ID = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID
-const FB_APP_SECRET = process.env.EXPO_PUBLIC_FACEBOOK_APP_SECRET
-
-console.log('FB_APP_ID:', FB_APP_ID)
-console.log('FB_APP_SECRET:', FB_APP_SECRET)
-
-// const FB_REDIRECT_URI = AuthSession.makeRedirectUri({
-//   schema: 'datingapp',
-//   path: 'auth/facebook/callback'
-// })
-
-const FB_REDIRECT_URI = AuthSession.makeRedirectUri({
-  scheme: 'datingapp',
-  path: 'auth/facebook/callback'
+GoogleSignin.configure({
+  scopes: ['https://www.googleapis.com/auth/drive'],
+  webClientId: '789518424097-kn4bh056dmd2bcpsgv73m5r34jbmcpl3.apps.googleusercontent.com',
+  offlineAccess: true,
+  forceCodeForRefreshToken: true,
 })
 
-console.log('FB_REDIRECT_URI:', FB_REDIRECT_URI)
-
 const LoginScreen = () => {
-  const { showToast } = useToast();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordVisible, setPasswordVisible] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { showToast } = useToast()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [passwordVisible, setPasswordVisible] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   // Error states
-  const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [generalError, setGeneralError] = useState("");
-  const [userId, setUserId] = useState(null);
-  const discovery = {
-    authorizationEndpoint: 'https://www.facebook.com/v18.0/dialog/oauth',
-    tokenEndpoint: 'https://graph.facebook.com/v18.0/oauth/access_token',
-  }
-
-  const [request, response, promptAsync] = AuthSession.useAuthRequest(
-    {
-      clientId: FB_APP_ID,
-      responseType: 'code',
-      redirectUri: FB_REDIRECT_URI,
-      scopes: ['public_profile', 'email'],
-      extraParams: {
-        display: 'popup',
-        auth_type: 'rerequest' // Yêu cầu xác thực lại, hữu ích nếu người dùng đã từ chối trước đó
-      }
-    },
-    discovery
-  )
+  const [emailError, setEmailError] = useState("")
+  const [passwordError, setPasswordError] = useState("")
+  const [generalError, setGeneralError] = useState("")
+  const [userId, setUserId] = useState(null)
 
   const togglePasswordVisibility = () => {
-    setPasswordVisible(!passwordVisible);
-  };
-
-  useEffect(() => {
-    const handleFacebookResponse = async () => {
-      console.log('Facebook response: ', response)
-
-      if (response?.type === 'success') {
-        const { code } = response.params
-        console.log('Received code: ', code)
-        
-        try {
-          setIsLoading(true)
-
-          // Send code to server to exchange for token
-          const response = await fetch(`${appConfig.API_URL}/auth/facebook/callback`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              code, 
-              redirectUri: FB_REDIRECT_URI
-            }),
-          })
-
-          const data = await response.json()
-
-          if (response.ok) {
-            if (data.data && data.data.token) {              await AsyncStorage.setItem('authToken', data.data.token)
-              console.log('Facebook login token saved to AsyncStorage:', data.data.token.substring(0, 15) + '...');
-              showToast('Facebook login successful!', 'success')
-
-              const userId = data.data.user.id
-
-              const checkResponse = await fetch(
-                `${appConfig.API_URL}/user/check-user-info-completion/${userId}`
-              )
-
-              const checkData = await checkResponse.json()
-              
-              // If user's information is not completed, navigate to profile detail
-              if (checkResponse.ok && !checkData.data.isCompleted) {
-                router.replace("/(auth)/profile_detail")
-              } else {
-                router.replace("/(tabs)/discover")
-              }
-            } else {
-              setGeneralError('No token received from the server.')
-            }
-          } else {
-            showToast(data.message || 'Facebook login failed.', 'error')
-            setGeneralError(data.message || 'An error occurred during Facebook login.')
-          }        } catch (error) {
-          console.error('Facebook login error:', error)
-          showToast('Network error. Please check your connection.', 'error')
-          setGeneralError('An error occurred during Facebook login.')
-        } finally {
-          setIsLoading(false)
-        }      } else if (response?.type === 'error') {
-        console.error('Facebook authentication error:', response.error)
-        showToast('Facebook login failed.', 'error')
-        setGeneralError('Facebook authentication failed. Please try again.')
-        setIsLoading(false)
-      } else if (response?.type === 'dismiss' || response?.type === 'cancel') {
-        console.log('Facebook login was dismissed or cancelled by user');
-        showToast('Facebook login was cancelled', 'info');
-        setIsLoading(false);
-      }
-    }
-
-    handleFacebookResponse()
-  }, [response])
-
+    setPasswordVisible(!passwordVisible)
+  }
   useEffect(() => {
     const fetchUserId = async () => {
       try {
-        const token = await AsyncStorage.getItem("authToken");
+        const token = await AsyncStorage.getItem("authToken")
         if (token) {
-          // router.replace("/(tabs)/discover");
+          // router.replace("/(tabs)/discover")
         }
       } catch (error) {
-        console.error("Error fetching user ID:", error);
+        console.error("Error fetching user ID:", error)
       }
-    };
-    fetchUserId();
-    // Set default selected hobbies if needed
-  }, []);
+    }
+    fetchUserId()
+  }, [])
 
   const validateEmail = () => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!email.trim()) {
-      setEmailError("Email is required");
-      return false;
+      setEmailError("Email is required")
+      return false
     } else if (!emailRegex.test(email)) {
-      setEmailError("Please enter a valid email address");
-      return false;
+      setEmailError("Please enter a valid email address")
+      return false
     }
-    setEmailError("");
-    return true;
-  };
+    setEmailError("")
+    return true
+  }
 
   const validatePassword = () => {
     if (!password) {
-      setPasswordError("Password is required");
-      return false;
+      setPasswordError("Password is required")
+      return false
     }
-    setPasswordError("");
-    return true;
-  };
+    setPasswordError("")
+    return true
+  }
 
   const validateForm = () => {
-    const isEmailValid = validateEmail();
-    const isPasswordValid = validatePassword();
+    const isEmailValid = validateEmail()
+    const isPasswordValid = validatePassword()
 
-    return isEmailValid && isPasswordValid;
-  };
+    return isEmailValid && isPasswordValid
+  }
 
   const handleLogin = async () => {
-    console.log("Login Button Pressed");
+    console.log("Login Button Pressed")
 
     if (validateForm()) {
       try {
-        setGeneralError("");
-        setIsLoading(true);
+        setGeneralError("")
+        setIsLoading(true)
 
         // Make API request to your server
-        const url = `${appConfig.API_URL}/auth/login`;
-        console.log("Login URL: ", url);
+        const url = `${appConfig.API_URL}/auth/login`
+        console.log("Login URL: ", url)
 
         const response = await fetch(url, {
           method: "POST",
@@ -211,83 +111,220 @@ const LoginScreen = () => {
             email: email,
             password: password,
           }),
-        });
+        })
 
         // Parse the response
-        const data = await response.json();
+        const data = await response.json()
 
         // Check if login was successful
         if (response.ok) {
           // Login successful
-          console.log("Login successful:", data);
+          console.log("Login successful:", data)
 
           // Check if token is available in response
           if (data.data && data.data.token) {
             // Save token to AsyncStorage
-            await AsyncStorage.setItem("authToken", data.data.token);
-            console.log("Token saved to AsyncStorage successfully");
+            await AsyncStorage.setItem("authToken", data.data.token)
+            console.log("Token saved to AsyncStorage successfully")
 
             // Show success toast
-            showToast("Login successful!", "success");
+            showToast("Login successful!", "success")
 
             //Get userid from data
-            const userId = data.data.user.id;
-            console.log("User ID:", userId);
+            const userId = data.data.user.id
+            console.log("User ID:", userId)
 
             //Check user's information completion
             const checkResponse = await fetch(
               `${appConfig.API_URL}/user/check-user-info-completion/${userId}`
-            );
-            const checkData = await checkResponse.json();
-            console.log("Check user info completion response:", checkData);
+            )
+            const checkData = await checkResponse.json()
+            console.log("Check user info completion response:", checkData)
 
             if (checkResponse.ok && !checkData.data.isCompleted) {
               // User's information is not completed, navigate
-              router.replace("/(auth)/profile_detail");
+              router.replace("/(auth)/profile_detail")
             } else {
-              router.replace("/(tabs)/discover");
+              router.replace("/(tabs)/discover")
             }
           } else {
             setGeneralError(
               "Invalid server response. Missing authentication token."
-            );
+            )
           }
         } else {
           // Login failed - show error message from server
-          console.log("Login failed:", data);
+          console.log("Login failed:", data)
           // Show error toast
-          showToast(data.message || "Đăng nhập thất bại. Vui lòng thử lại.", "error");
+          showToast(data.message || "Đăng nhập thất bại. Vui lòng thử lại.", "error")
           setGeneralError(
             data.message ||
             "Login failed. Please check your credentials and try again."
-          );
+          )
         }
       } catch (error) {
-        console.error("Login error:", error);
-        showToast("Network error. Please check your connection.", "error");
+        console.error("Login error:", error)
+        showToast("Network error. Please check your connection.", "error")
         setGeneralError(
           "Network error. Please check your connection and try again."
-        );
+        )      
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
     }
-  };
-  const handleGoogleLogin = async () => {}
-  const handleFacebookLogin = async () => {
+  }
+    /**
+   * Google Login
+   */
+  const handleGoogleLogin = async () => {
     try {
-      setIsLoading(true);
-      showToast('Redirecting to Facebook login...', 'info');
-      console.log('Starting Facebook login with redirectUri:', FB_REDIRECT_URI);
+      // Check if Play Services are available
+      await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true
+      })
       
-      // Không sử dụng useProxy trong môi trường production
-      const result = await promptAsync();
-      console.log('Auth result: ', result);
+      // Sign in with Google
+      const userInfo = await GoogleSignin.signIn()
+      console.log('Google user info: ', userInfo)
       
-      // Không cần làm gì ở đây vì useEffect sẽ xử lý kết quả
-    } catch (error) {      console.error('Facebook login error:', error);
-      showToast('Facebook login failed: ' + (error.message || 'Unknown error'), 'error');
-      setIsLoading(false);
+      if (userInfo && userInfo.idToken) {
+        // Set loading state
+        setIsLoading(true)
+        
+        try {
+          // Send the Google token to your backend
+          const url = `${appConfig.API_URL}/auth/google`
+          console.log("Google login URL: ", url)
+          
+          const response = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              idToken: userInfo.idToken,
+              user: {
+                email: userInfo.user.email,
+                name: userInfo.user.name,
+                photo: userInfo.user.photo
+              }
+            }),
+          })
+          
+          const data = await response.json()
+          
+          // Check if login was successful
+          if (response.ok && data.data && data.data.token) {
+            // Save token to AsyncStorage
+            await AsyncStorage.setItem("authToken", data.data.token)
+            console.log("Google auth token saved successfully")
+            
+            // Show success toast
+            showToast("Google login successful!", "success")
+            
+            // Get user ID from data
+            const userId = data.data.user.id
+            console.log("User ID:", userId)
+            
+            // Check user's information completion
+            const checkResponse = await fetch(
+              `${appConfig.API_URL}/user/check-user-info-completion/${userId}`
+            )
+            const checkData = await checkResponse.json()
+            
+            if (checkResponse.ok && !checkData.data.isCompleted) {
+              // User's information is not completed, navigate
+              router.replace("/(auth)/profile_detail")
+            } else {
+              router.replace("/(tabs)/discover")
+            }
+          } else {
+            setGeneralError(data.message || "Google login failed. Please try again.")
+            showToast(data.message || "Google login failed. Please try again.", "error")
+          }
+        } catch (error) {
+          console.error("Backend error during Google login:", error)
+          showToast("Network error during Google login.", "error")
+          setGeneralError("Network error. Please check your connection and try again.")
+        } finally {
+          setIsLoading(false)
+        }
+      }
+    } catch (error) {
+      console.error('Google login error: ', error)
+      showToast(`Google login failed: ${error.message}`, "error")
+    }
+  }
+  
+  const handleFacebookResponse = async (response) => {
+    console.log('Facebook response: ', response)
+    
+    if (response?.type === 'success') {
+      const { code } = response.params
+      console.log('Received code: ', code)
+      
+      try {
+        setIsLoading(true)
+
+        // Send code to server to exchange for token
+        const apiResponse = await fetch(`${appConfig.API_URL}/auth/facebook/callback`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            code,
+            // Send the same redirectUri that was used to get the code
+            redirectUri: response.url
+          }),
+        })
+
+        const data = await apiResponse.json()
+
+        if (apiResponse.ok) {
+          if (data.data && data.data.token) {
+            await AsyncStorage.setItem('authToken', data.data.token)
+            console.log('Facebook login token saved to AsyncStorage')
+            showToast('Facebook login successful!', 'success')
+
+            const userId = data.data.user.id
+
+            // Check user's information completion
+            const checkResponse = await fetch(
+              `${appConfig.API_URL}/user/check-user-info-completion/${userId}`
+            )
+
+            const checkData = await checkResponse.json()
+            
+            // Navigate based on user info completion
+            if (checkResponse.ok && !checkData.data.isCompleted) {
+              router.replace("/(auth)/profile_detail")
+            } else {
+              router.replace("/(tabs)/discover")
+            }
+          } else {
+            setGeneralError('Invalid server response. Missing authentication token.')
+          }
+        } else {
+          showToast(data.message || 'Facebook login failed.', 'error')
+          setGeneralError(data.message || 'An error occurred during Facebook login.')
+        }
+      } catch (error) {
+        console.error('Facebook login error:', error)
+        showToast('Network error. Please check your connection.', 'error')
+        setGeneralError('Network error. Please check your connection and try again.')
+      } finally {
+        setIsLoading(false)
+      }
+    } else if (response?.type === 'error') {
+      console.error('Facebook authentication error:', response.error)
+      showToast('Facebook login failed.', 'error')
+      setGeneralError('Facebook authentication failed. Please try again.')
+      setIsLoading(false)
+    } else if (response?.type === 'dismiss' || response?.type === 'cancel') {
+      console.log('Facebook login was dismissed or cancelled by user')
+      showToast('Facebook login was cancelled', 'info')
+      setIsLoading(false)
     }
   }
 
@@ -341,8 +378,8 @@ const LoginScreen = () => {
               <View style={styles.errorContainer}>
                 {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
               </View>
-            </View>
-
+            </View>            
+            
             {/* Password */}
             <View style={styles.inputContainer}>
               <View style={styles.inputWrapper}>
@@ -351,7 +388,7 @@ const LoginScreen = () => {
                   placeholder="Password"
                   value={password}
                   onChangeText={(text) => {
-                    setPassword(text);
+                    setPassword(text)
                     if (passwordError) {
                       setPasswordError('')
                     }
@@ -370,10 +407,14 @@ const LoginScreen = () => {
                     color="#999"
                   />
                 </TouchableOpacity>
-              </View>
-              <View style={styles.errorContainer}>
+              </View>              <View style={styles.errorContainer}>
                 {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
               </View>
+              <TouchableOpacity 
+                onPress={() => router.push("/(auth)/forgot-password")}
+              >
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
             </View>
 
             {/* SIGN IN Button */}
@@ -381,15 +422,20 @@ const LoginScreen = () => {
               style={styles.signInButton}
               onPress={handleLogin} // Function to handle login
               activeOpacity={0.8}
+              disabled={isLoading}
             >
-              <Text style={styles.signInText}>SIGN IN</Text>
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.signInText}>SIGN IN</Text>
+              )}
             </TouchableOpacity>
 
             {/* SIGN UP Button */}
             <TouchableOpacity
               style={styles.signUpButton}
               onPress={() => {
-                router.push("/(auth)/register"); // Navigate to the register screen
+                router.push("/(auth)/register") // Navigate to the register screen
               }}
               activeOpacity={0.8}
             >
@@ -405,7 +451,7 @@ const LoginScreen = () => {
               </View>
 
               <Text style={styles.socialText}>Sign in with</Text>
-
+              
               <View style={styles.socialIconsContainer}>
                 <TouchableOpacity style={styles.iconButton} onPress={() => handleGoogleLogin()}>
                   <Image
@@ -414,25 +460,15 @@ const LoginScreen = () => {
                   />
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.iconButton} onPress={() => handleFacebookLogin()}>
-                  <Image
-                    source={require('../../assets/images/facebook-icon.png')}
-                    style={styles.roundedSocialIcon}
-                  />
-                </TouchableOpacity>
+                <FacebookLoginButton onLoginComplete={handleFacebookResponse} />
               </View>
-
-              <Text style={styles.termsText}>
-                By signing in, you agree to our <Text style={styles.termsLink}>Terms</Text> and
-                <Text style={styles.termsLink}> Privacy Policy</Text>
-              </Text>
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -585,8 +621,7 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     marginHorizontal: 20,
-  },
-  roundedSocialIcon: {
+  },  roundedSocialIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -600,6 +635,12 @@ const styles = StyleSheet.create({
     color: Colors.primaryColor,
     textDecorationLine: 'underline',
   },
-});
+  forgotPasswordText: {
+    color: Colors.primaryColor,
+    fontSize: 14,
+    textAlign: 'right',
+    marginTop: 5,
+  },
+})
 
-export default LoginScreen;
+export default LoginScreen
