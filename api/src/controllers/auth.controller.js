@@ -1,3 +1,4 @@
+const HttpStatus = require("../core/httpStatus");
 const AuthService = require("../services/auth.service");
 
 class AuthController {
@@ -90,6 +91,28 @@ class AuthController {
       });
     }
   };
+  loginWithFacebook = async (req, res, next) => {
+    console.log(`[P]::LoginWithFacebook::`, req.body)
+    const { code, redirectUri } = req.body
+
+    try {
+      if (!code || !redirectUri) {
+        return res.status(HttpStatus.BAD_REQUEST.code).json({
+          status: 'error',
+          message: 'Code and redirectUri are required',
+        })
+      }
+
+      console.log(`[P]::LoginWithFacebook::Attempting with code: ${code.substring(0, 10)}... and redirectUri: ${redirectUri}`)
+      const result = await AuthService.loginWithFacebook({ code, redirectUri })
+      console.log(`[P]::LoginWithFacebook::Result::`, result)
+
+      return res.status(HttpStatus.OK.code).json(result)
+    } catch (error) {
+      console.error(`[P]::LoginWithFacebook::Error::`, error)
+      next(error)
+    }
+  }
 }
 
 module.exports = new AuthController();

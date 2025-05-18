@@ -9,10 +9,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
+  ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
 import { Colors } from "../../constants/Colors";
-import { Image } from "react-native";
 import { router } from "expo-router";
 import appConfig from "../../configs/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -34,20 +35,19 @@ const LoginScreen = () => {
   const togglePasswordVisibility = () => {
     setPasswordVisible(!passwordVisible);
   };
-
+  
   useEffect(() => {
     const fetchUserId = async () => {
       try {
         const token = await AsyncStorage.getItem("authToken");
         if (token) {
-          // router.replace("/(tabs)/discover");
+          // router.replace("/(tabs)/discover")
         }
       } catch (error) {
         console.error("Error fetching user ID:", error);
       }
     };
     fetchUserId();
-    // Set default selected hobbies if needed
   }, []);
 
   const validateEmail = () => {
@@ -156,7 +156,7 @@ const LoginScreen = () => {
         showToast("Network error. Please check your connection.", "error");
         setGeneralError(
           "Network error. Please check your connection and try again."
-        );
+        );      
       } finally {
         setIsLoading(false);
       }
@@ -170,16 +170,16 @@ const LoginScreen = () => {
         style={styles.container}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }} // Ensures the scroll view takes up the full height of the screen
-          showsVerticalScrollIndicator={false} // Hides the vertical scroll indicator
-          keyboardShouldPersistTaps="handled" // Ensures keyboard dismisses when tapping outside of input fields
+          contentContainerStyle={{ flexGrow: 1 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.logoWrapper}>
               <Text style={styles.logoText}>CUPID ARROW</Text>
               <Image
-                source={require("../../assets/images/cupid_icon.png")} // Đường dẫn ảnh
+                source={require("../../assets/images/cupid_icon.png")}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
@@ -200,9 +200,9 @@ const LoginScreen = () => {
                   placeholder="Email"
                   value={email}
                   onChangeText={(text) => {
-                    setEmail(text)
+                    setEmail(text);
                     if (emailError) {
-                      setEmailError('') // Clear error when user starts typing
+                      setEmailError(''); // Clear error when user starts typing
                     }
                   }}
                   onBlur={validateEmail}
@@ -213,8 +213,8 @@ const LoginScreen = () => {
               <View style={styles.errorContainer}>
                 {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
               </View>
-            </View>
-
+            </View>            
+            
             {/* Password */}
             <View style={styles.inputContainer}>
               <View style={styles.inputWrapper}>
@@ -225,7 +225,7 @@ const LoginScreen = () => {
                   onChangeText={(text) => {
                     setPassword(text);
                     if (passwordError) {
-                      setPasswordError('')
+                      setPasswordError('');
                     }
                   }}
                   onBlur={validatePassword}
@@ -246,59 +246,44 @@ const LoginScreen = () => {
               <View style={styles.errorContainer}>
                 {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
               </View>
+              <TouchableOpacity 
+                onPress={() => router.push("/(auth)/forgot-password")}
+              >
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
             </View>
+
+            {/* Display general error if any */}
+            {generalError ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{generalError}</Text>
+              </View>
+            ) : null}
 
             {/* SIGN IN Button */}
             <TouchableOpacity
               style={styles.signInButton}
-              onPress={handleLogin} // Function to handle login
+              onPress={handleLogin}
               activeOpacity={0.8}
+              disabled={isLoading}
             >
-              <Text style={styles.signInText}>SIGN IN</Text>
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.signInText}>SIGN IN</Text>
+              )}
             </TouchableOpacity>
 
             {/* SIGN UP Button */}
             <TouchableOpacity
               style={styles.signUpButton}
               onPress={() => {
-                router.push("/(auth)/register"); // Navigate to the register screen
+                router.push("/(auth)/register");
               }}
               activeOpacity={0.8}
             >
               <Text style={styles.signUpText}>SIGN UP</Text>
             </TouchableOpacity>
-
-            {/* Social Login */}
-            <View style={styles.socialLoginContainer}>
-              <View style={styles.dividerContainer}>
-                <View style={styles.divider} />
-                <Text style={styles.dividerText}>OR</Text>
-                <View style={styles.divider} />
-              </View>
-
-              <Text style={styles.socialText}>Sign in with</Text>
-
-              <View style={styles.socialIconsContainer}>
-                <TouchableOpacity style={styles.iconButton} onPress={() => handleGoogleLogin()}>
-                  <Image
-                    source={require('../../assets/images/google-icon.png')}
-                    style={styles.roundedSocialIcon}
-                  />
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.iconButton} onPress={() => handleFacebookLogin()}>
-                  <Image
-                    source={require('../../assets/images/facebook-icon.png')}
-                    style={styles.roundedSocialIcon}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <Text style={styles.termsText}>
-                By signing in, you agree to our <Text style={styles.termsLink}>Terms</Text> and
-                <Text style={styles.termsLink}> Privacy Policy</Text>
-              </Text>
-            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -312,15 +297,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryColor,
   },
   header: {
-    height: "30%", // Further reduced header height to move form up more
+    height: "30%",
     justifyContent: "flex-end",
-    alignItems: "center", // Center alignment for the logo
+    alignItems: "center",
     paddingBottom: 20,
   },
   logoWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10, // Center the text within wrapper
+    gap: 10,
   },
   logoText: {
     fontSize: 36,
@@ -339,7 +324,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 25,
     paddingTop: 25,
     paddingBottom: 100,
-    flex: 1, // Let form container take remaining space
+    flex: 1,
   },
   welcomeText: {
     fontSize: 24,
@@ -365,7 +350,6 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 50,
-    // paddingVertical: 16,
     fontSize: 16,
     color: "#333",
   },
@@ -424,53 +408,12 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 60,
     height: 60,
-    // marginBottom: 10,
   },
-  socialLoginContainer: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E0E0E0',
-  },
-  dividerText: {
-    marginHorizontal: 10,
-    fontSize: 14,
-    color: '#888',
-  },
-  socialText: {
-    fontSize: 14,
-    color: '#888',
-    marginBottom: 10,
-  },
-  socialIconsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  iconButton: {
-    marginHorizontal: 20,
-  },
-  roundedSocialIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  termsText: {
-    fontSize: 12,
-    color: '#888',
-    textAlign: 'center',
-  },
-  termsLink: {
+  forgotPasswordText: {
     color: Colors.primaryColor,
-    textDecorationLine: 'underline',
+    fontSize: 14,
+    textAlign: 'right',
+    marginTop: 5,
   },
 });
 
