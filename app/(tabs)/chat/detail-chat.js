@@ -74,7 +74,7 @@ const DetailChat = () => {
         const data = await response.json();
         // console.log("📥 Messages fetched from API:", data);
         setMessages(data.data || []);
-        AsyncStorage.setItem("lastMessageSentId", data.data[data.data.length-1]._id)
+        if (data.data[data.data.length-1]) AsyncStorage.setItem("lastMessageSentId", data.data[data.data.length-1]._id)
       } catch (error) {
         console.error("❌ Error fetching messages:", error);
       }

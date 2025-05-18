@@ -11,6 +11,7 @@ router.use('/match', require('./match.route'))
 router.use('/message', require('./message.route'))
 router.use('/conversation', require('./conversation.route'))
 
+router.use('/otp', require('./otp.routes'))
 
 router.use('/notification', require('./notification.route'))
 

@@ -1,21 +1,23 @@
-{
+{ 
   "expo": {
     "name": "Dating-App",
     "slug": "Dating-App",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "datingapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.datingapp.datingapp"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.datingapp.datingapp"
     },
     "web": {
       "bundler": "metro",
@@ -33,7 +35,7 @@
           "backgroundColor": "#ffffff"
         }
       ]
-    ],
+    ],    
     "experiments": {
       "typedRoutes": true
     }

@@ -175,6 +175,117 @@ class AuthService {
       message: "Password changed successfully",
     };
   };
+
+  static loginWithFacebook = async ({ code, redirectUri }) => {
+    console.log('Received code:', code)
+    console.log('Received redirectUri:', redirectUri)
+    
+    // Validate the code and redirectUri
+    if (!code || !redirectUri) {
+      throw new BadRequestError("Code and redirectUri are required")
+    }    // Call Facebook API to exchange code for access token
+    const tokenUrl = `https://graph.facebook.com/v18.0/oauth/access_token?` +
+      new URLSearchParams({
+        client_id: process.env.FACEBOOK_APP_ID,
+        client_secret: process.env.FACEBOOK_APP_SECRET,
+        redirect_uri: redirectUri,
+        code,
+      })
+    console.log('tokenUrl: ', tokenUrl)
+
+    const tokenResponse = await fetch(
+      tokenUrl,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },      }
+    )
+    
+    if (!tokenResponse.ok) {
+      const errorResponse = await tokenResponse.json().catch(() => ({}));
+      console.error('Facebook token error:', errorResponse);
+      throw new AppError(
+        `Failed to get access token from Facebook: ${errorResponse.error?.message || tokenResponse.statusText}`, 
+        HttpStatus.BAD_GATEWAY.code
+      );
+    }
+
+    const tokenData = await tokenResponse.json()
+    const { access_token } = tokenData
+    
+    console.log('Successfully obtained Facebook access token');
+
+    // Use the access token to get user info
+    const userUrl = `https://graph.facebook.com/me?` +
+      new URLSearchParams({
+        fields: 'id,name,email,picture',
+        access_token,
+      })
+    console.log('userUrl: ', userUrl)
+
+    const userResponse = await fetch(
+      userUrl, 
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      }    )
+
+    if (!userResponse.ok) {
+      const errorInfo = await userResponse.json().catch(() => ({}));
+      console.error('Facebook user info error:', errorInfo);
+      throw new AppError(
+        `Failed to get user info from Facebook: ${errorInfo.error?.message || userResponse.statusText}`, 
+        HttpStatus.BAD_GATEWAY.code
+      );
+    }    const facebookUser = await userResponse.json()
+    
+    console.log('Facebook user info received:', {
+      id: facebookUser.id,
+      name: facebookUser.name,
+      email: facebookUser.email,
+      picture: facebookUser.picture?.data?.url ? 'Available' : 'Not available'
+    });
+    
+    // Verify we have an email - this is required
+    if (!facebookUser.email) {
+      throw new BadRequestError('Facebook did not provide an email address. Please check your Facebook privacy settings.');
+    }
+
+    // Tìm hoặc tạo user trong database
+    let user = await User.findOne({ email: facebookUser.email })
+    if (!user) {
+      user = await User.create({
+        name: facebookUser.name,
+        email: facebookUser.email,
+        avatar: facebookUser.picture?.data?.url || 'https://sbcf.fr/wp-content/uploads/2018/03/sbcf-default-avatar.png',
+        birthday: new Date('1990-01-01'),
+        password: null,
+      })
+    } else {
+      console.log('User already exists:', user.email)
+    }
+
+    // Tạo JWT token
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN || '1h',
+    })
+
+    return {
+      status: 'success',
+      message: 'Đăng nhập bằng Facebook thành công',
+      data: {
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+        },
+      },
+    }
+  }
 }
 
 module.exports = AuthService;
