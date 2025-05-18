@@ -129,22 +129,22 @@ export default function Layout() {
             if (!querySnapshot.metadata.hasPendingWrites && !querySnapshot.metadata.fromCache) {
               querySnapshot.forEach(async (doc) => {
                 console.log("🔥 New accepted:", doc.data());
-                
+
                 const firestoreData = doc.data();
                 const storedLastNotifyId = await AsyncStorage.getItem('lastNotifyId');
 
-                  // Check if this is actually a new notify
+                // Check if this is actually a new notify
                 const isNewNptify = doc.id !== storedLastNotifyId;
                 if (isNewNptify) {
                   showNotification(firestoreData.content || "New notify received!");
 
                   // Update the last message ID in storage
                   await AsyncStorage.setItem('lastNotifyId', doc.id);
-                } 
-                
+                }
+
               });
             }
-            else{
+            else {
               querySnapshot.forEach(async (doc) => {
                 try {
                   await AsyncStorage.setItem('lastNotifyId', doc.id);
@@ -153,7 +153,7 @@ export default function Layout() {
                 }
               });
             }
-            
+
           });
         }
       } catch (error) {
@@ -205,24 +205,26 @@ export default function Layout() {
                   // Check if this is actually a new message
                   const isNewMessage = doc.id !== storedLastMessageId;
                   const isFromOtherUser = firestoreData.senderId !== uid;
-
+                  const isEditOrRecall = firestoreData.isEdited || firestoreData.isDeleted 
                   // Only show notification if it's both new and from another user
-                  if (isNewMessage && isFromOtherUser) {
-                    // console.log("📢 New message detected, showing notification");
-                    showNotification(firestoreData.content || "New message received!");
+                  if (!isEditOrRecall) {
+                    if (isNewMessage && isFromOtherUser) {
+                      // console.log("📢 New message detected, showing notification");
+                      showNotification(firestoreData.content || "New message received!");
 
-                    // Update the last message ID in both state and storage
-                    setLastMessageId(doc.id);
-                    await AsyncStorage.setItem('lastMessageId', doc.id);
-                  } else {
-                    // console.log("🔄 Message already seen or sent by current user");
-                    if (!isNewMessage) console.log("   - Same message ID as stored");
-                    if (!isFromOtherUser) console.log("   - Message from current user");
-
-                    // Still update the last message ID to ensure we're tracking the latest
-                    if (isNewMessage) {
+                      // Update the last message ID in both state and storage
                       setLastMessageId(doc.id);
                       await AsyncStorage.setItem('lastMessageId', doc.id);
+                    } else {
+                      // console.log("🔄 Message already seen or sent by current user");
+                      if (!isNewMessage) console.log("   - Same message ID as stored");
+                      if (!isFromOtherUser) console.log("   - Message from current user");
+
+                      // Still update the last message ID to ensure we're tracking the latest
+                      if (isNewMessage) {
+                        setLastMessageId(doc.id);
+                        await AsyncStorage.setItem('lastMessageId', doc.id);
+                      }
                     }
                   }
                 } catch (error) {

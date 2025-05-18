@@ -168,8 +168,61 @@ class ConversationService {
             data: formattedMatchRequests,
         };
     };
-    
 
+    // Block a user in a conversation
+    static blockConversation = async ({ conversationId, blockedBy }) => {
+        const updatedConversation = await Conversation.findByIdAndUpdate(
+            conversationId,
+            { blocked_by: blockedBy }, // Set the ID of the user who is blocking
+            { new: true } // Return the updated document
+        );
+
+        if (!updatedConversation) {
+            throw new NotFoundError("Không tìm thấy cuộc hội thoại");
+        }
+
+        return {
+            status: "success",
+            message: "Đã chặn người dùng thành công",
+            data: updatedConversation,
+        };
+    };
+
+    // Unblock a user in a conversation
+    static unblockConversation = async ({ conversationId }) => {
+        const updatedConversation = await Conversation.findByIdAndUpdate(
+            conversationId,
+            { blocked_by: null }, // Set blocked_by to null to unblock
+            { new: true } // Return the updated document
+        );
+
+        if (!updatedConversation) {
+            throw new NotFoundError("Không tìm thấy cuộc hội thoại");
+        }
+
+        return {
+            status: "success",
+            message: "Đã bỏ chặn người dùng thành công",
+            data: updatedConversation,
+        };
+    };
+
+    // Get conversation by ID
+    static getConversationById = async ({ conversationId }) => {
+        const conversation = await Conversation.findById(conversationId)
+            .populate("sender", "name email avatar")
+            .populate("receiver", "name email avatar");
+
+        if (!conversation) {
+            throw new NotFoundError("Không tìm thấy cuộc hội thoại");
+        }
+
+        return {
+            status: "success",
+            message: "Lấy thông tin cuộc hội thoại thành công",
+            data: conversation,
+        };
+    };
 }
 
 module.exports = ConversationService;
