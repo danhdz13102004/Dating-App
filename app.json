@@ -35,12 +35,9 @@
           "backgroundColor": "#ffffff"
         }
       ]
-    ],
+    ],    
     "experiments": {
       "typedRoutes": true
-    },
-    "facebookScheme": "fb1757770771471001",
-    "facebookAppId": "1757770771471001",
-    "facebookDisplayName": "Cupid Arrow"
+    }
   }
 }
