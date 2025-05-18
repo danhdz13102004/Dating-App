@@ -1,0 +1,9 @@
+@url=http://localhost:6969/v1/api
+
+## Register
+POST {{url}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "phuc85ltvdn@gmail.com"
+}

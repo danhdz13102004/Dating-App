@@ -35,6 +35,9 @@ yarn-error.*
 .env.*.local
 .env*.local
 
+# client secrets
+client_secret_*.json
+
 # typescript
 *.tsbuildinfo
 
